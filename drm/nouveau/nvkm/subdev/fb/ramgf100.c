@@ -519,7 +519,7 @@ gf100_ram_train_init(struct nvkm_ram *ram)
 int
 gf100_ram_init(struct nvkm_ram *base)
 {
-	return 0;
+	return gf100_ram_train_init(base);
 }
 
 u32

@@ -148,24 +148,31 @@ nvkm_ram_get(struct nvkm_device *device, u8 heap, u8 type, u8 rpage, u64 size,
 }
 
 int
+nvkm_ram_data(struct nvkm_ram *ram, u32 khz, struct nvkm_ram_data *data)
+{
+	struct nvkm_subdev *subdev = &ram->fb->subdev;
+	struct nvkm_ram_data *cfg;
+	u32 mhz = khz / 1000;
+
+	list_for_each_entry(cfg, &ram->cfg, head) {
+		if (mhz >= cfg->bios.rammap_min &&
+		    mhz <= cfg->bios.rammap_max) {
+			*data = *cfg;
+			data->freq = khz;
+			return 0;
+		}
+	}
+
+	nvkm_error(subdev, "ramcfg data for %dMHz not found\n", mhz);
+	return -EINVAL;
+}
+
+int
 nvkm_ram_init(struct nvkm_ram *ram)
 {
 	if (ram->func->init)
 		return ram->func->init(ram);
 	return 0;
-}
-
-void
-nvkm_ram_del(struct nvkm_ram **pram)
-{
-	struct nvkm_ram *ram = *pram;
-	if (ram && !WARN_ON(!ram->func)) {
-		if (ram->func->dtor)
-			*pram = ram->func->dtor(ram);
-		nvkm_mm_fini(&ram->vram);
-		kfree(*pram);
-		*pram = NULL;
-	}
 }
 
 int
@@ -201,7 +208,33 @@ nvkm_ram_ctor(const struct nvkm_ram_func *func, struct nvkm_fb *fb,
 			return ret;
 	}
 
+	INIT_LIST_HEAD(&ram->cfg);
 	return 0;
+}
+
+static void
+nvkm_ram_dtor(struct nvkm_ram *ram)
+{
+	struct nvkm_ram_data *cfg, *tmp;
+
+	list_for_each_entry_safe(cfg, tmp, &ram->cfg, head) {
+		kfree(cfg);
+	}
+
+	nvkm_mm_fini(&ram->vram);
+}
+
+void
+nvkm_ram_del(struct nvkm_ram **pram)
+{
+	struct nvkm_ram *ram = *pram;
+	if (ram && !WARN_ON(!ram->func)) {
+		if (ram->func->dtor)
+			*pram = ram->func->dtor(ram);
+		nvkm_ram_dtor(ram);
+		kfree(*pram);
+		*pram = NULL;
+	}
 }
 
 int

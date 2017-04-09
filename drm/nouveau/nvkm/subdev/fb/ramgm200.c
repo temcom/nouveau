@@ -46,7 +46,6 @@ gm200_ram = {
 	.probe_fbp_ltcs = gm200_ram_probe_fbp_ltcs,
 	.probe_fbpas = gm107_ram_probe_fbpas,
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
-	.dtor = gk104_ram_dtor,
 	.init = gk104_ram_init,
 	.calc = gk104_ram_calc,
 	.prog = gk104_ram_prog,

@@ -29,7 +29,8 @@ struct nvkm_gpio {
 void nvkm_gpio_reset(struct nvkm_gpio *, u8 func);
 int nvkm_gpio_find(struct nvkm_gpio *, int idx, u8 tag, u8 line,
 		   struct dcb_gpio_func *);
-int nvkm_gpio_set(struct nvkm_gpio *, int idx, u8 tag, u8 line, int state);
+int nvkm_gpio_set(struct nvkm_gpio *, int idx, u8 tag, u8 line, int state,
+		  struct nvkm_sink *);
 int nvkm_gpio_get(struct nvkm_gpio *, int idx, u8 tag, u8 line);
 
 int nv10_gpio_new(struct nvkm_device *, int, struct nvkm_gpio **);

@@ -49,9 +49,8 @@ nv10_gpio_sense(struct nvkm_gpio *gpio, int line)
 }
 
 static int
-nv10_gpio_drive(struct nvkm_gpio *gpio, int line, int dir, int out)
+nv10_gpio_drive(int line, int dir, int out, struct nvkm_sink *sink)
 {
-	struct nvkm_device *device = gpio->subdev.device;
 	u32 reg, mask, data;
 
 	if (line < 2) {
@@ -75,7 +74,7 @@ nv10_gpio_drive(struct nvkm_gpio *gpio, int line, int dir, int out)
 		return -EINVAL;
 	}
 
-	nvkm_mask(device, reg, mask << line, data << line);
+	nvri_mask(sink, reg, mask << line, data << line);
 	return 0;
 }
 

@@ -238,6 +238,7 @@ uint32_t nv17_dac_sample_load(struct drm_encoder *encoder)
 	struct nouveau_drm *drm = nouveau_drm(dev);
 	struct nvif_object *device = &nouveau_drm(dev)->client.device.object;
 	struct nvkm_gpio *gpio = nvxx_gpio(&drm->client.device);
+	struct nvkm_sink *sink = &gpio->subdev.device->sink;
 	struct dcb_output *dcb = nouveau_encoder(encoder)->dcb;
 	uint32_t sample, testval, regoffset = nv04_dac_output_offset(encoder);
 	uint32_t saved_powerctrl_2 = 0, saved_powerctrl_4 = 0, saved_routput,
@@ -272,8 +273,10 @@ uint32_t nv17_dac_sample_load(struct drm_encoder *encoder)
 	if (gpio) {
 		saved_gpio1 = nvkm_gpio_get(gpio, 0, DCB_GPIO_TVDAC1, 0xff);
 		saved_gpio0 = nvkm_gpio_get(gpio, 0, DCB_GPIO_TVDAC0, 0xff);
-		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC1, 0xff, dcb->type == DCB_OUTPUT_TV);
-		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC0, 0xff, dcb->type == DCB_OUTPUT_TV);
+		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC1, 0xff,
+			      dcb->type == DCB_OUTPUT_TV, sink);
+		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC0, 0xff,
+			      dcb->type == DCB_OUTPUT_TV, sink);
 	}
 
 	msleep(4);
@@ -325,8 +328,8 @@ uint32_t nv17_dac_sample_load(struct drm_encoder *encoder)
 	nvif_wr32(device, NV_PBUS_POWERCTRL_2, saved_powerctrl_2);
 
 	if (gpio) {
-		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC1, 0xff, saved_gpio1);
-		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC0, 0xff, saved_gpio0);
+		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC1, 0xff, saved_gpio1, sink);
+		nvkm_gpio_set(gpio, 0, DCB_GPIO_TVDAC0, 0xff, saved_gpio0, sink);
 	}
 
 	return sample;

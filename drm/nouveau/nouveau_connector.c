@@ -431,7 +431,8 @@ nouveau_connector_ddc_detect(struct drm_connector *connector)
 	if (nv_connector->type == DCB_CONNECTOR_eDP) {
 		panel = nvkm_gpio_get(gpio, 0, DCB_GPIO_PANEL_POWER, 0xff);
 		if (panel == 0) {
-			nvkm_gpio_set(gpio, 0, DCB_GPIO_PANEL_POWER, 0xff, 1);
+			nvkm_gpio_set(gpio, 0, DCB_GPIO_PANEL_POWER, 0xff, 1,
+				      &gpio->subdev.device->sink);
 			msleep(300);
 		}
 	}
@@ -474,7 +475,8 @@ nouveau_connector_ddc_detect(struct drm_connector *connector)
 	 * state to avoid confusing the SOR for other output types.
 	 */
 	if (!nv_encoder && panel == 0)
-		nvkm_gpio_set(gpio, 0, DCB_GPIO_PANEL_POWER, 0xff, panel);
+		nvkm_gpio_set(gpio, 0, DCB_GPIO_PANEL_POWER, 0xff, panel,
+			      &gpio->subdev.device->sink);
 
 	return nv_encoder;
 }

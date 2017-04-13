@@ -44,7 +44,7 @@ gf119_gpio_reset(struct nvkm_gpio *gpio, u8 match)
 		    (match != DCB_GPIO_UNUSED && match != func))
 			continue;
 
-		nvkm_gpio_set(gpio, 0, func, line, defs);
+		nvkm_gpio_set(gpio, 0, func, line, defs, &device->sink);
 
 		nvkm_mask(device, 0x00d610 + (line * 4), 0xff, unk0);
 		if (unk1--)
@@ -53,12 +53,11 @@ gf119_gpio_reset(struct nvkm_gpio *gpio, u8 match)
 }
 
 int
-gf119_gpio_drive(struct nvkm_gpio *gpio, int line, int dir, int out)
+gf119_gpio_drive(int line, int dir, int out, struct nvkm_sink *sink)
 {
-	struct nvkm_device *device = gpio->subdev.device;
 	u32 data = ((dir ^ 1) << 13) | (out << 12);
-	nvkm_mask(device, 0x00d610 + (line * 4), 0x00003000, data);
-	nvkm_mask(device, 0x00d604, 0x00000001, 0x00000001); /* update? */
+	if (nvri_mask(sink, 0x00d610 + (line * 4), 0x00003000, data, DIFF))
+		nvri_mask(sink, 0x00d604, 0x00000001, 0x00000001); /* update? */
 	return 0;
 }
 

@@ -51,7 +51,7 @@ nvkm_fantog_update(struct nvkm_fantog *fan, int percent)
 	fan->percent = percent;
 
 	duty = !nvkm_gpio_get(gpio, 0, DCB_GPIO_FAN, 0xff);
-	nvkm_gpio_set(gpio, 0, DCB_GPIO_FAN, 0xff, duty);
+	nvkm_gpio_set(gpio, 0, DCB_GPIO_FAN, 0xff, duty, &device->sink);
 
 	if (percent != (duty * 100)) {
 		u64 next_change = (percent * fan->period_us) / 100;

@@ -54,12 +54,13 @@ nvkm_voltgpio_get(struct nvkm_volt *volt)
 int
 nvkm_voltgpio_set(struct nvkm_volt *volt, u8 vid)
 {
-	struct nvkm_gpio *gpio = volt->subdev.device->gpio;
+	struct nvkm_device *device = volt->subdev.device;
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(tags); i++, vid >>= 1) {
 		if (volt->vid_mask & (1 << i)) {
-			int ret = nvkm_gpio_set(gpio, 0, tags[i], 0xff, vid & 1);
+			int ret = nvkm_gpio_set(device->gpio, 0, tags[i], 0xff,
+						vid & 1, &device->sink);
 			if (ret < 0)
 				return ret;
 		}

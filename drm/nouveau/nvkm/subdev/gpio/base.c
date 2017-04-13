@@ -26,9 +26,10 @@
 #include <core/notify.h>
 
 static int
-nvkm_gpio_drive(struct nvkm_gpio *gpio, int idx, int line, int dir, int out)
+nvkm_gpio_drive(struct nvkm_gpio *gpio, int idx, int line, int dir, int out,
+		struct nvkm_sink *sink)
 {
-	return gpio->func->drive(gpio, line, dir, out);
+	return gpio->func->drive(line, dir, out, sink);
 }
 
 static int
@@ -77,7 +78,8 @@ nvkm_gpio_find(struct nvkm_gpio *gpio, int idx, u8 tag, u8 line,
 }
 
 int
-nvkm_gpio_set(struct nvkm_gpio *gpio, int idx, u8 tag, u8 line, int state)
+nvkm_gpio_set(struct nvkm_gpio *gpio, int idx, u8 tag, u8 line, int state,
+	      struct nvkm_sink *sink)
 {
 	struct dcb_gpio_func func;
 	int ret;
@@ -86,7 +88,7 @@ nvkm_gpio_set(struct nvkm_gpio *gpio, int idx, u8 tag, u8 line, int state)
 	if (ret == 0) {
 		int dir = !!(func.log[state] & 0x02);
 		int out = !!(func.log[state] & 0x01);
-		ret = nvkm_gpio_drive(gpio, idx, func.line, dir, out);
+		ret = nvkm_gpio_drive(gpio, idx, func.line, dir, out, sink);
 	}
 
 	return ret;

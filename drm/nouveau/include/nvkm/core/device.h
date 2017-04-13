@@ -3,6 +3,7 @@
 #define __NVKM_DEVICE_H__
 #include <core/oclass.h>
 #include <core/event.h>
+#include <core/sink.h>
 
 enum nvkm_devidx {
 	NVKM_SUBDEV_PCI,
@@ -89,6 +90,7 @@ struct nvkm_device {
 	struct mutex mutex;
 	int refcount;
 
+	struct nvkm_sink sink;
 	void __iomem *pri;
 
 	struct nvkm_event event;

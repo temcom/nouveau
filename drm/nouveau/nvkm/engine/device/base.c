@@ -27,11 +27,48 @@
 #include <core/notify.h>
 #include <core/option.h>
 
-#include <subdev/bios.h>
-#include <subdev/therm.h>
-
 static DEFINE_MUTEX(nv_devices_mutex);
 static LIST_HEAD(nv_devices);
+
+static void
+nvkm_device_sink_nsec(struct nvkm_sink *sink, u64 nsec)
+{
+	struct nvkm_device *device = container_of(sink, typeof(*device), sink);
+	nvkm_nsec(device, nsec, NVKM_DELAY);
+}
+
+static void
+nvkm_device_sink_wait(struct nvkm_sink *sink,
+		      u32 addr, u32 mask, u32 data, u64 nsec)
+{
+	struct nvkm_device *device = container_of(sink, typeof(*device), sink);
+	nvkm_nsec(device, nsec,
+		if ((nvkm_rd32(device, addr) & mask) == data)
+			break;
+	);
+}
+
+static void
+nvkm_device_sink_wr32(struct nvkm_sink *sink, u32 addr, u32 data)
+{
+	struct nvkm_device *device = container_of(sink, typeof(*device), sink);
+	nvkm_wr32(device, addr, data);
+}
+
+static u32
+nvkm_device_sink_rd32(struct nvkm_sink *sink, u32 addr)
+{
+	struct nvkm_device *device = container_of(sink, typeof(*device), sink);
+	return nvkm_rd32(device, addr);
+}
+
+static const struct nvkm_sink_func
+nvkm_device_sink = {
+	.rd32 = nvkm_device_sink_rd32,
+	.wr32 = nvkm_device_sink_wr32,
+	.wait = nvkm_device_sink_wait,
+	.nsec = nvkm_device_sink_nsec,
+};
 
 static struct nvkm_device *
 nvkm_device_find_locked(u64 handle)
@@ -2865,6 +2902,7 @@ nvkm_device_ctor(const struct nvkm_device_func *func,
 			ret = -ENOMEM;
 			goto done;
 		}
+		nvkm_sink_ctor(&nvkm_device_sink, NULL, &device->sink);
 	}
 
 	mutex_init(&device->mutex);

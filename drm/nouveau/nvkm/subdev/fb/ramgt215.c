@@ -37,6 +37,7 @@
 
 struct gt215_ramfuc {
 	struct ramfuc base;
+	struct nvkm_fb *fb;
 	struct ramfuc_reg r_0x001610;
 	struct ramfuc_reg r_0x001700;
 	struct ramfuc_reg r_0x002504;
@@ -465,7 +466,7 @@ gt215_ram_lock_pll(struct gt215_ramfuc *fuc, struct gt215_clk_info *mclk)
 static void
 gt215_ram_gpio(struct gt215_ramfuc *fuc, u8 tag, u32 val)
 {
-	struct nvkm_gpio *gpio = fuc->base.fb->subdev.device->gpio;
+	struct nvkm_gpio *gpio = fuc->fb->subdev.device->gpio;
 	struct dcb_gpio_func func;
 	u32 reg, sh, gpio_val;
 	int ret;
@@ -557,6 +558,7 @@ gt215_ram_calc(struct nvkm_ram *base, u32 freq)
 	gt215_ram_timing_calc(ram, timing);
 
 	ret = ram_init(fuc, ram->base.fb);
+	fuc->fb = ram->base.fb;
 	if (ret)
 		return ret;
 

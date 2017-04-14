@@ -6,28 +6,22 @@
 
 struct ramfuc {
 	struct nvkm_memx *memx;
-	struct nvkm_fb *fb;
-	int sequence;
 };
 
 struct ramfuc_reg {
-	int sequence;
 	bool force;
 	u32 addr;
 	u32 stride; /* in bytes */
 	u32 mask;
-	u32 data;
 };
 
 static inline struct ramfuc_reg
 ramfuc_stride(u32 addr, u32 stride, u32 mask)
 {
 	return (struct ramfuc_reg) {
-		.sequence = 0,
 		.addr = addr,
 		.stride = stride,
 		.mask = mask,
-		.data = 0xdeadbeef,
 	};
 }
 
@@ -35,11 +29,9 @@ static inline struct ramfuc_reg
 ramfuc_reg2(u32 addr1, u32 addr2)
 {
 	return (struct ramfuc_reg) {
-		.sequence = 0,
 		.addr = addr1,
 		.stride = addr2 - addr1,
 		.mask = 0x3,
-		.data = 0xdeadbeef,
 	};
 }
 
@@ -47,44 +39,28 @@ static noinline struct ramfuc_reg
 ramfuc_reg(u32 addr)
 {
 	return (struct ramfuc_reg) {
-		.sequence = 0,
 		.addr = addr,
 		.stride = 0,
 		.mask = 0x1,
-		.data = 0xdeadbeef,
 	};
 }
 
 static inline int
 ramfuc_init(struct ramfuc *ram, struct nvkm_fb *fb)
 {
-	int ret = nvkm_memx_init(fb->subdev.device->pmu, &ram->memx);
-	if (ret)
-		return ret;
-
-	ram->sequence++;
-	ram->fb = fb;
-	return 0;
+	return nvkm_memx_init(fb->subdev.device->pmu, &ram->memx);
 }
 
 static inline int
 ramfuc_exec(struct ramfuc *ram, bool exec)
 {
-	int ret = 0;
-	if (ram->fb) {
-		ret = nvkm_memx_fini(&ram->memx, exec);
-		ram->fb = NULL;
-	}
-	return ret;
+	return nvkm_memx_fini(&ram->memx, exec);
 }
 
 static inline u32
 ramfuc_rd32(struct ramfuc *ram, struct ramfuc_reg *reg)
 {
-	struct nvkm_device *device = ram->fb->subdev.device;
-	if (reg->sequence != ram->sequence)
-		reg->data = nvkm_rd32(device, reg->addr);
-	return reg->data;
+	return memx_rd32(ram->memx, reg->addr);
 }
 
 static inline void
@@ -92,12 +68,9 @@ ramfuc_wr32(struct ramfuc *ram, struct ramfuc_reg *reg, u32 data)
 {
 	unsigned int mask, off = 0;
 
-	reg->sequence = ram->sequence;
-	reg->data = data;
-
 	for (mask = reg->mask; mask > 0; mask = (mask & ~1) >> 1) {
 		if (mask & 1)
-			nvkm_memx_wr32(ram->memx, reg->addr+off, reg->data);
+			memx_wr32(ram->memx, reg->addr + off, data);
 		off += reg->stride;
 	}
 }
@@ -111,24 +84,23 @@ ramfuc_nuke(struct ramfuc *ram, struct ramfuc_reg *reg)
 static inline u32
 ramfuc_mask(struct ramfuc *ram, struct ramfuc_reg *reg, u32 mask, u32 data)
 {
-	u32 temp = ramfuc_rd32(ram, reg);
-	if (temp != ((temp & ~mask) | data) || reg->force) {
-		ramfuc_wr32(ram, reg, (temp & ~mask) | data);
+	if (reg->force) {
 		reg->force = false;
+		return memx_mask(ram->memx, reg->addr, mask, data, FORCE);
 	}
-	return temp;
+	return memx_mask(ram->memx, reg->addr, mask, data);
 }
 
 static inline void
 ramfuc_wait(struct ramfuc *ram, u32 addr, u32 mask, u32 data, u32 nsec)
 {
-	nvkm_memx_wait(ram->memx, addr, mask, data, nsec);
+	memx_wait(ram->memx, addr, mask, data, nsec);
 }
 
 static inline void
 ramfuc_nsec(struct ramfuc *ram, u32 nsec)
 {
-	nvkm_memx_nsec(ram->memx, nsec);
+	memx_nsec(ram->memx, nsec);
 }
 
 static inline void

@@ -44,12 +44,18 @@ int gp100_pmu_new(struct nvkm_device *, int, struct nvkm_pmu **);
 int gp102_pmu_new(struct nvkm_device *, int, struct nvkm_pmu **);
 
 /* interface to MEMX process running on PMU */
-struct nvkm_memx;
-int  nvkm_memx_init(struct nvkm_pmu *, struct nvkm_memx **);
-int  nvkm_memx_fini(struct nvkm_memx **, bool exec);
-void nvkm_memx_wr32(struct nvkm_memx *, u32 addr, u32 data);
-void nvkm_memx_wait(struct nvkm_memx *, u32 addr, u32 mask, u32 data, u32 nsec);
-void nvkm_memx_nsec(struct nvkm_memx *, u32 nsec);
+struct nvkm_memx {
+	struct nvkm_sink sink;
+};
+
+#define memx_rd32(s,a)          nvri_rd32(&(s)->sink, (a))
+#define memx_wr32(s,a,d)        nvri_wr32(&(s)->sink, (a), (d))
+#define memx_mask(s,a,m,d,v...) nvri_mask(&(s)->sink, (a), (m), (d), ##v)
+#define memx_nsec(s,n)		nvri_nsec(&(s)->sink, (n))
+#define memx_wait(s,a,m,d,n)	nvri_wait(&(s)->sink, (a), (m), (d), (n))
+
+int nvkm_memx_init(struct nvkm_pmu *, struct nvkm_memx **);
+int nvkm_memx_fini(struct nvkm_memx **, bool exec);
 void nvkm_memx_wait_vblank(struct nvkm_memx *);
 void nvkm_memx_block(struct nvkm_memx *);
 void nvkm_memx_unblock(struct nvkm_memx *);

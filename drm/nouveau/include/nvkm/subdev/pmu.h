@@ -51,8 +51,8 @@ void nvkm_memx_wr32(struct nvkm_memx *, u32 addr, u32 data);
 void nvkm_memx_wait(struct nvkm_memx *, u32 addr, u32 mask, u32 data, u32 nsec);
 void nvkm_memx_nsec(struct nvkm_memx *, u32 nsec);
 void nvkm_memx_wait_vblank(struct nvkm_memx *);
-void nvkm_memx_train(struct nvkm_memx *);
-int  nvkm_memx_train_result(struct nvkm_pmu *, u32 *, int);
 void nvkm_memx_block(struct nvkm_memx *);
 void nvkm_memx_unblock(struct nvkm_memx *);
+void nvkm_memx_train(struct nvkm_memx *);
+int  nvkm_memx_train_result(struct nvkm_pmu *, u32 *, int);
 #endif

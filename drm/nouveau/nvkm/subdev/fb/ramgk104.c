@@ -253,6 +253,7 @@ gk104_ram_calc_gddr5(struct gk104_ram *ram, u32 freq)
 	struct gk104_ramfuc *fuc = &ram->fuc;
 	struct nvbios_ramcfg *diff = &ram->base.diff;
 	struct nvkm_ram_data *next = ram->base.next;
+	struct nvkm_ram_mr *mr = ram->base.mr;
 	int vc = !next->bios.ramcfg_11_02_08;
 	int mv = !next->bios.ramcfg_11_02_04;
 	u32 mask, data;
@@ -264,8 +265,8 @@ gk104_ram_calc_gddr5(struct gk104_ram *ram, u32 freq)
 		ram_wr32(fuc, 0x62c000, 0x0f0f0000);
 
 	/* MR1: turn termination on early, for some reason.. */
-	if ((ram->base.mr[1] & 0x03c) != 0x030) {
-		ram_mask(fuc, mr[1], 0x03c, ram->base.mr[1] & 0x03c);
+	if ((ram->base.mr[1].data & 0x03c) != 0x030) {
+		ram_mask(fuc, mr[1], 0x03c, ram->base.mr[1].data & 0x03c);
 		ram_nuts(ram, mr[1], 0x03c, ram->base.mr1_nuts & 0x03c, 0x000);
 	}
 
@@ -589,14 +590,15 @@ gk104_ram_calc_gddr5(struct gk104_ram *ram, u32 freq)
 		ram_wr32(fuc, 0x10f294, temp);
 	}
 
-	ram_mask(fuc, mr[3], 0xfff, ram->base.mr[3]);
-	ram_wr32(fuc, mr[0], ram->base.mr[0]);
-	ram_mask(fuc, mr[8], 0xfff, ram->base.mr[8]);
+	ram_mask(fuc, mr[3], mr[3].mask, mr[3].data);
+	ram_nuke(fuc, mr[0]);
+	ram_mask(fuc, mr[0], mr[0].mask, mr[0].data);
+	ram_mask(fuc, mr[8], mr[8].mask, mr[8].data);
 	ram_nsec(fuc, 1000);
-	ram_mask(fuc, mr[1], 0xfff, ram->base.mr[1]);
-	ram_mask(fuc, mr[5], 0xfff, ram->base.mr[5] & ~0x004); /* LP3 later */
-	ram_mask(fuc, mr[6], 0xfff, ram->base.mr[6]);
-	ram_mask(fuc, mr[7], 0xfff, ram->base.mr[7]);
+	ram_mask(fuc, mr[1], mr[1].mask, mr[1].data);
+	ram_mask(fuc, mr[5], mr[5].mask, mr[5].data & ~0x004); /* LP3 later */
+	ram_mask(fuc, mr[6], mr[6].mask, mr[6].data);
+	ram_mask(fuc, mr[7], mr[7].mask, mr[7].data);
 
 	if (vc == 0 && ram_have(fuc, gpio2E)) {
 		u32 temp  = ram_mask(fuc, gpio2E, 0x3000, fuc->r_func2E[0]);
@@ -648,7 +650,7 @@ gk104_ram_calc_gddr5(struct gk104_ram *ram, u32 freq)
 	}
 
 	/* LP3 */
-	if (ram_mask(fuc, mr[5], 0x004, ram->base.mr[5]) != ram->base.mr[5])
+	if (ram_mask(fuc, mr[5], mr[5].mask & 0x004, mr[5].data) != ram->base.mr[5].data)
 		ram_nsec(fuc, 1000);
 
 	if (ram->mode != 2) {
@@ -704,6 +706,7 @@ gk104_ram_calc_sddr3(struct gk104_ram *ram, u32 freq)
 	const u32 runk0 = ram->fN1 << 16;
 	const u32 runk1 = ram->fN1;
 	struct nvkm_ram_data *next = ram->base.next;
+	struct nvkm_ram_mr *mr = ram->base.mr;
 	int vc = !next->bios.ramcfg_11_02_08;
 	int mv = !next->bios.ramcfg_11_02_04;
 	u32 mask, data;
@@ -913,9 +916,10 @@ gk104_ram_calc_sddr3(struct gk104_ram *ram, u32 freq)
 		nvkm_sddr3_dll_reset(fuc);
 	}
 
-	ram_mask(fuc, mr[2], 0x00000fff, ram->base.mr[2]);
-	ram_mask(fuc, mr[1], 0xffffffff, ram->base.mr[1]);
-	ram_wr32(fuc, mr[0], ram->base.mr[0]);
+	ram_mask(fuc, mr[2], mr[2].mask, mr[2].data);
+	ram_mask(fuc, mr[1], mr[1].mask, mr[1].data);
+	ram_nuke(fuc, mr[0]);
+	ram_mask(fuc, mr[0], mr[0].mask, mr[0].data);
 	ram_nsec(fuc, 1000);
 
 	if (!next->bios.ramcfg_DLLoff) {
@@ -1022,7 +1026,7 @@ gk104_ram_calc_xits(struct gk104_ram *ram, struct nvkm_ram_data *next)
 {
 	struct gk104_ramfuc *fuc = &ram->fuc;
 	struct nvkm_subdev *subdev = &ram->base.fb->subdev;
-	int refclk, i;
+	int refclk;
 	int ret;
 
 	ret = ram_init(fuc, ram->base.fb);
@@ -1063,10 +1067,6 @@ gk104_ram_calc_xits(struct gk104_ram *ram, struct nvkm_ram_data *next)
 		}
 	}
 
-	for (i = 0; i < ARRAY_SIZE(fuc->r_mr); i++) {
-		if (ram_have(fuc, mr[i]))
-			ram->base.mr[i] = ram_rd32(fuc, mr[i]);
-	}
 	ram->base.freq = next->freq;
 
 	switch (ram->base.type) {
@@ -1076,7 +1076,8 @@ gk104_ram_calc_xits(struct gk104_ram *ram, struct nvkm_ram_data *next)
 			ret = gk104_ram_calc_sddr3(ram, next->freq);
 		break;
 	case NVKM_RAM_TYPE_GDDR5:
-		ret = nvkm_gddr5_calc(&ram->base, ram->pnuts != 0);
+		ret = nvkm_gddr5_calc(&ram->base, ram->pnuts != 0,
+				      next->freq < 1000000);
 		if (ret == 0)
 			ret = gk104_ram_calc_gddr5(ram, next->freq);
 		break;

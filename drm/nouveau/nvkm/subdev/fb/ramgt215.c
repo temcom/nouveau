@@ -563,24 +563,24 @@ nvkm_sddr2_dll_reset(struct gt215_ramfuc *fuc)
 }
 
 static void
-nvkm_sddr3_dll_disable(struct gt215_ramfuc *fuc, u32 *mr)
+nvkm_sddr3_dll_disable(struct gt215_ramfuc *fuc, struct nvkm_ram_mr *mr)
 {
 	u32 mr1_old = ram_rd32(fuc, mr[1]);
 
 	if (!(mr1_old & 0x1)) {
 		ram_wr32(fuc, 0x1002d4, 0x00000001);
-		ram_wr32(fuc, mr[1], mr[1]);
+		ram_mask(fuc, mr[1], mr[1].mask, mr[1].data);
 		ram_nsec(fuc, 1000);
 	}
 }
 
 static void
-nvkm_gddr3_dll_disable(struct gt215_ramfuc *fuc, u32 *mr)
+nvkm_gddr3_dll_disable(struct gt215_ramfuc *fuc, struct nvkm_ram_mr *mr)
 {
 	u32 mr1_old = ram_rd32(fuc, mr[1]);
 
 	if (!(mr1_old & 0x40)) {
-		ram_wr32(fuc, mr[1], mr[1]);
+		ram_mask(fuc, mr[1], mr[1].mask, mr[1].data);
 		ram_nsec(fuc, 1000);
 	}
 }
@@ -632,6 +632,7 @@ gt215_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 	struct nvkm_bios *bios = device->bios;
 	struct gt215_clk_info mclk;
 	struct nvkm_gpio *gpio = device->gpio;
+	struct nvkm_ram_mr *mr = ram->base.mr;
 	struct nvkm_ram_data *next;
 	u8  ver, hdr, cnt, len, strap;
 	u32 data;
@@ -695,10 +696,6 @@ gt215_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 		return ret;
 
 	/* Determine ram-specific MR values */
-	ram->base.mr[0] = ram_rd32(fuc, mr[0]);
-	ram->base.mr[1] = ram_rd32(fuc, mr[1]);
-	ram->base.mr[2] = ram_rd32(fuc, mr[2]);
-
 	switch (ram->base.type) {
 	case NVKM_RAM_TYPE_DDR2:
 		ret = nvkm_sddr2_calc(&ram->base);
@@ -884,8 +881,8 @@ gt215_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 
 	/* Set RAM MR parameters and timings */
 	for (i = 2; i >= 0; i--) {
-		if (ram_rd32(fuc, mr[i]) != ram->base.mr[i]) {
-			ram_wr32(fuc, mr[i], ram->base.mr[i]);
+		if (ram_rd32(fuc, mr[i]) != ram->base.mr[i].data) {
+			ram_mask(fuc, mr[i], mr[i].mask, mr[i].data);
 			ram_nsec(fuc, 1000);
 		}
 	}

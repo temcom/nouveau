@@ -25,76 +25,49 @@
 #include "priv.h"
 #include "ram.h"
 
-struct ramxlat {
-	int id;
-	u8 enc;
-};
-
-static inline int
-ramxlat(const struct ramxlat *xlat, int id)
-{
-	while (xlat->id >= 0) {
-		if (xlat->id == id)
-			return xlat->enc;
-		xlat++;
-	}
-	return -EINVAL;
-}
-
-static const struct ramxlat
+static const struct nvkm_ram_mr_xlat
 ramddr2_cl[] = {
 	{ 2, 2 }, { 3, 3 }, { 4, 4 }, { 5, 5 }, { 6, 6 },
 	/* The following are available in some, but not all DDR2 docs */
 	{ 7, 7 },
-	{ -1 }
 };
 
-static const struct ramxlat
+static const struct nvkm_ram_mr_xlat
 ramddr2_wr[] = {
 	{ 2, 1 }, { 3, 2 }, { 4, 3 }, { 5, 4 }, { 6, 5 },
 	/* The following are available in some, but not all DDR2 docs */
 	{ 7, 6 },
-	{ -1 }
 };
 
 int
 nvkm_sddr2_calc(struct nvkm_ram *ram)
 {
-	int CL, WR, DLL = 0, ODT = 0;
+	MR_ARGS(CL, WR, DLLoff, ODT);
 
 	switch (ram->next->bios.timing_ver) {
 	case 0x10:
-		CL  = ram->next->bios.timing_10_CL;
-		WR  = ram->next->bios.timing_10_WR;
-		DLL = !ram->next->bios.ramcfg_DLLoff;
-		ODT = ram->next->bios.timing_10_ODT & 3;
+		MR_LOAD(    CL, c->timing_10_CL);
+		MR_LOAD(    WR, c->timing_10_WR);
+		MR_LOAD(DLLoff, c->ramcfg_DLLoff);
+		MR_COND(   ODT, c->timing_10_ODT, c->ramcfg_timing != 0xff);
 		break;
 	case 0x20:
-		CL  = (ram->next->bios.timing[1] & 0x0000001f);
-		WR  = (ram->next->bios.timing[2] & 0x007f0000) >> 16;
+		MR_LOAD(CL, (c->timing[1] & 0x0000001f) >> 0);
+		MR_LOAD(WR, (c->timing[2] & 0x007f0000) >> 16);
 		break;
 	default:
 		return -ENOSYS;
 	}
 
-	if (ram->next->bios.timing_ver == 0x20 ||
-	    ram->next->bios.ramcfg_timing == 0xff) {
-		ODT =  (ram->mr[1] & 0x004) >> 2 |
-		       (ram->mr[1] & 0x040) >> 5;
-	}
-
-	CL  = ramxlat(ramddr2_cl, CL);
-	WR  = ramxlat(ramddr2_wr, WR);
-	if (CL < 0 || WR < 0)
+	if (MR_XLAT(CL, ramddr2_cl) ||
+	    MR_XLAT(WR, ramddr2_wr))
 		return -EINVAL;
 
-	ram->mr[0] &= ~0xf70;
-	ram->mr[0] |= (WR & 0x07) << 9;
-	ram->mr[0] |= (CL & 0x07) << 4;
+	MR_MASK(0, 0xe00, WR);
+	MR_MASK(0, 0x070, CL);
 
-	ram->mr[1] &= ~0x045;
-	ram->mr[1] |= (ODT & 0x1) << 2;
-	ram->mr[1] |= (ODT & 0x2) << 5;
-	ram->mr[1] |= !DLL;
+	MR_MASK(1, 0x001, DLLoff);
+	MR_BITS(1, 0x040, ODT, 0x2);
+	MR_BITS(1, 0x004, ODT, 0x1);
 	return 0;
 }

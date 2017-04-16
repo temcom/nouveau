@@ -62,10 +62,50 @@ int gt215_ram_train_type(struct nvkm_ram *ram, int i, u8 ramcfg,
 int gf100_ram_train_init(struct nvkm_ram *ram);
 
 /* RAM type-specific MR calculation routines */
+struct nvkm_ram_mr_xlat {
+	u8 ival;
+	u8 oval;
+};
+
+#define MR_ARGS(VARS...)                                                       \
+	struct nvbios_ramcfg *v = &ram->diff, *c = &ram->next->bios; (void)v;  \
+	union {                                                                \
+		struct {                                                       \
+			int VARS;                                              \
+		} v;                                                           \
+		int data[0];                                                   \
+	} a;                                                                   \
+	int i;                                                                 \
+	for (i = 0; i < sizeof(a) / sizeof(a.data[0]); i++)                    \
+		a.data[i] = -1;                                                \
+	memset(ram->mr, 0x00, sizeof(ram->mr))
+#define MR_LOAD(n,d) a.v.n = (d)
+#define MR_COND(n,d,c) do { if (c) a.v.n = (d); } while(0)
+#define MR_XLAT(n,x) ({                                                        \
+	const struct nvkm_ram_mr_xlat *_x = (x);                               \
+	int _ret = -EINVAL, _i;                                                \
+	for (_i = 0; _i < ARRAY_SIZE(x); _i++) {                               \
+		if (_x[_i].ival == a.v.n) {                                    \
+			a.v.n = _x[_i].oval;                                   \
+			_ret = 0;                                              \
+			break;                                                 \
+		}                                                              \
+	}                                                                      \
+	_ret;                                                                  \
+})
+#define MR_DATA(r,m,n,d) do {                                                  \
+	if (a.v.n >= 0) {                                                      \
+		ram->mr[(r)].mask |= (m);                                      \
+		ram->mr[(r)].data |= (d) << __ffs(m);                          \
+	}                                                                      \
+} while(0)
+#define MR_MASK(r,m,n)   MR_DATA(r, m, n, a.v.n)
+#define MR_BITS(r,m,n,b) MR_DATA(r, m, n, (a.v.n & (b)) >> __ffs(b))
+
 int nvkm_sddr2_calc(struct nvkm_ram *);
 int nvkm_sddr3_calc(struct nvkm_ram *);
 int nvkm_gddr3_calc(struct nvkm_ram *);
-int nvkm_gddr5_calc(struct nvkm_ram *, bool nuts);
+int nvkm_gddr5_calc(struct nvkm_ram *, bool nuts, int rq);
 
 int nv04_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int nv10_ram_new(struct nvkm_fb *, struct nvkm_ram **);

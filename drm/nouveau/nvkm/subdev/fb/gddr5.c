@@ -32,22 +32,20 @@
 #define NOTE00(a) 1
 
 int
-nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts)
+nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq)
 {
-	int pd, lf, xd, vh, vr, vo, l3;
-	int WL, CL, WR, at[2], dt, ds;
-	int rq = ram->freq < 1000000; /* XXX */
-
-	xd = !ram->next->bios.ramcfg_DLLoff;
+	MR_ARGS(rq, xd, pd, lf, vh, vr, vo, l3, WL, CL, WR, at[2], dt, ds);
+	MR_LOAD(rq, rq);
+	MR_LOAD(xd, !c->ramcfg_DLLoff);
 
 	switch (ram->next->bios.ramcfg_ver) {
 	case 0x11:
-		pd =  ram->next->bios.ramcfg_11_01_80;
-		lf =  ram->next->bios.ramcfg_11_01_40;
-		vh =  ram->next->bios.ramcfg_11_02_10;
-		vr =  ram->next->bios.ramcfg_11_02_04;
-		vo =  ram->next->bios.ramcfg_11_06;
-		l3 = !ram->next->bios.ramcfg_11_07_02;
+		MR_LOAD(pd, c->ramcfg_11_01_80); /*XXX: RM !1->0 */
+		MR_LOAD(lf, c->ramcfg_11_01_40);
+		MR_LOAD(vh, c->ramcfg_11_02_10);
+		MR_COND(vr, c->ramcfg_11_02_04, NOTE00(vr));
+		MR_COND(vo, c->ramcfg_11_06, c->ramcfg_11_06);
+		MR_LOAD(l3, !c->ramcfg_11_07_02);
 		break;
 	default:
 		return -ENOSYS;
@@ -55,67 +53,46 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts)
 
 	switch (ram->next->bios.timing_ver) {
 	case 0x20:
-		WL = (ram->next->bios.timing[1] & 0x00000f80) >> 7;
-		CL = (ram->next->bios.timing[1] & 0x0000001f);
-		WR = (ram->next->bios.timing[2] & 0x007f0000) >> 16;
-		at[0] = ram->next->bios.timing_20_2e_c0;
-		at[1] = ram->next->bios.timing_20_2e_30;
-		dt =  ram->next->bios.timing_20_2e_03;
-		ds =  ram->next->bios.timing_20_2f_03;
+		MR_LOAD(WL, (c->timing[1] & 0x00000f80) >> 7);
+		MR_LOAD(CL, ((c->timing[1] & 0x0000001f) >>  0) - 5);
+		MR_LOAD(WR, ((c->timing[2] & 0x007f0000) >> 16) - 4);
+		MR_LOAD(at[0], c->timing_20_2e_c0);
+		MR_LOAD(at[1], c->timing_20_2e_30);
+		MR_LOAD(dt, c->timing_20_2e_03);
+		MR_LOAD(ds, c->timing_20_2f_03);
 		break;
 	default:
 		return -ENOSYS;
 	}
 
-	if (WL < 1 || WL > 7 || CL < 5 || CL > 36 || WR < 4 || WR > 35)
-		return -EINVAL;
-	CL -= 5;
-	WR -= 4;
+	MR_BITS(0, 0xf00, WR, 0x0f);
+	MR_BITS(0, 0x078, CL, 0x0f);
+	MR_BITS(0, 0x007, WL, 0x07);
 
-	ram->mr[0] &= ~0xf7f;
-	ram->mr[0] |= (WR & 0x0f) << 8;
-	ram->mr[0] |= (CL & 0x0f) << 3;
-	ram->mr[0] |= (WL & 0x07) << 0;
-
-	ram->mr[1] &= ~0x0bf;
-	ram->mr[1] |= (xd & 0x01) << 7;
-	ram->mr[1] |= (at[0] & 0x03) << 4;
-	ram->mr[1] |= (dt & 0x03) << 2;
-	ram->mr[1] |= (ds & 0x03) << 0;
+	MR_MASK(1, 0x080, xd);
+	MR_MASK(1, 0x030, at[0]);
+	MR_MASK(1, 0x00c, dt);
+	MR_MASK(1, 0x003, ds);
 
 	/* this seems wrong, alternate field used for the broadcast
 	 * on nuts vs non-nuts configs..  meh, it matches for now.
 	 */
-	ram->mr1_nuts = ram->mr[1];
-	if (nuts) {
-		ram->mr[1] &= ~0x030;
-		ram->mr[1] |= (at[1] & 0x03) << 4;
-	}
+	ram->mr1_nuts = ram->mr[1].data;
+	if (nuts)
+		MR_MASK(1, 0x030, at[1]);
 
-	ram->mr[3] &= ~0x020;
-	ram->mr[3] |= (rq & 0x01) << 5;
+	MR_MASK(3, 0x020, rq);
 
-	ram->mr[5] &= ~0x004;
-	ram->mr[5] |= (l3 << 2);
+	MR_MASK(5, 0x004, l3);
 
-	if (!vo)
-		vo = (ram->mr[6] & 0xff0) >> 4;
-	if (ram->mr[6] & 0x001)
-		pd = 1; /* binary driver does this.. bug? */
-	ram->mr[6] &= ~0xff1;
-	ram->mr[6] |= (vo & 0xff) << 4;
-	ram->mr[6] |= (pd & 0x01) << 0;
+	MR_MASK(6, 0xff0, vo);
+	MR_MASK(6, 0x001, pd);
 
-	if (NOTE00(vr)) {
-		ram->mr[7] &= ~0x300;
-		ram->mr[7] |= (vr & 0x03) << 8;
-	}
-	ram->mr[7] &= ~0x088;
-	ram->mr[7] |= (vh & 0x01) << 7;
-	ram->mr[7] |= (lf & 0x01) << 3;
+	MR_MASK(7, 0x300, vr);
+	MR_MASK(7, 0x080, vh);
+	MR_MASK(7, 0x008, lf);
 
-	ram->mr[8] &= ~0x003;
-	ram->mr[8] |= (WR & 0x10) >> 3;
-	ram->mr[8] |= (CL & 0x10) >> 4;
+	MR_BITS(8, 0x002, WR, 0x10);
+	MR_BITS(8, 0x001, CL, 0x10);
 	return 0;
 }

@@ -222,6 +222,7 @@ nv50_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 	struct nv50_ramseq *hwsq = &ram->hwsq;
 	struct nvkm_subdev *subdev = &ram->base.fb->subdev;
 	struct nvkm_bios *bios = subdev->device->bios;
+	struct nvkm_ram_mr *mr = ram->base.mr;
 	struct nvbios_perfE perfE;
 	struct nvbios_pll mpll;
 	struct nvkm_ram_data *next;
@@ -284,10 +285,6 @@ nv50_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 		return ret;
 
 	/* Determine ram-specific MR values */
-	ram->base.mr[0] = ram_rd32(hwsq, mr[0]);
-	ram->base.mr[1] = ram_rd32(hwsq, mr[1]);
-	ram->base.mr[2] = ram_rd32(hwsq, mr[2]);
-
 	switch (ram->base.type) {
 	case NVKM_RAM_TYPE_GDDR3:
 		ret = nvkm_gddr3_calc(&ram->base);
@@ -379,9 +376,9 @@ nv50_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 		break;
 	case NVKM_RAM_TYPE_GDDR3:
 		ram_nuke(hwsq, mr[1]); /* force update */
-		ram_wr32(hwsq, mr[1], ram->base.mr[1]);
+		ram_mask(hwsq, mr[1], mr[1].mask, mr[1].data);
 		ram_nuke(hwsq, mr[0]); /* force update */
-		ram_wr32(hwsq, mr[0], ram->base.mr[0]);
+		ram_mask(hwsq, mr[0], mr[0].mask, mr[0].data);
 		break;
 	default:
 		break;
@@ -451,7 +448,7 @@ nv50_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 	} else {
 		ram_mask(hwsq, 0x10053c, 0x00001000, 0x00001000);
 	}
-	ram_mask(hwsq, mr[1], 0xffffffff, ram->base.mr[1]);
+	ram_mask(hwsq, mr[1], mr[1].mask, mr[1].data);
 
 	if (!next->bios.timing_10_ODT)
 		nv50_ram_gpio(hwsq, 0x2e, 0);

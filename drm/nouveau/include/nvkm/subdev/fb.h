@@ -134,7 +134,11 @@ struct nvkm_ram {
 	unsigned long fbpam;	/* Mask of present FBPAs. */
 
 	u32 freq;
-	u32 mr[16];
+
+	struct nvkm_ram_mr {
+		u32 mask;
+		u32 data;
+	} mr[16];
 	u32 mr1_nuts;
 
 	struct nvbios_ramcfg diff;

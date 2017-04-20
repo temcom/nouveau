@@ -45,6 +45,7 @@ struct nvbios_pll {
 	enum nvbios_pll_type type;
 	u32 reg;
 	u32 refclk;
+	u32 refclk_alt;
 
 	u8 min_p;
 	u8 max_p;

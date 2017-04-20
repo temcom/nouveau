@@ -347,6 +347,7 @@ nvbios_pll_parse(struct nvkm_bios *bios, u32 type, struct nvbios_pll *info)
 		info->refclk = nvbios_rd32(bios, data + 28);
 		break;
 	case 0x40:
+		info->refclk_alt = nvbios_rd16(bios, data + 7) * 1000;
 		info->refclk = nvbios_rd16(bios, data + 9) * 1000;
 		data = nvbios_rd16(bios, data + 1);
 

@@ -371,10 +371,10 @@ nv50_clk_calc(struct nvkm_clk *base, struct nvkm_cstate *cstate)
 	struct nv50_clk_hwsq *hwsq = &clk->hwsq;
 	struct nvkm_subdev *subdev = &clk->base.subdev;
 	struct nvkm_device *device = subdev->device;
-	const int shader = cstate->domain[nv_clk_src_shader];
-	const int core = cstate->domain[nv_clk_src_core];
-	const int vdec = cstate->domain[nv_clk_src_vdec];
-	const int dom6 = cstate->domain[nv_clk_src_dom6];
+	const int shader = cstate->domain[nv_clk_src_shader].khz;
+	const int core = cstate->domain[nv_clk_src_core].khz;
+	const int vdec = cstate->domain[nv_clk_src_vdec].khz;
+	const int dom6 = cstate->domain[nv_clk_src_dom6].khz;
 	u32 mastm = 0, mastv = 0;
 	u32 divsm = 0, divsv = 0;
 	int N, M, P1, P2;

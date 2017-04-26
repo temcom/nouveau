@@ -366,91 +366,91 @@ static struct nvkm_pstate
 gk20a_pstates[] = {
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 72000,
+			.domain[nv_clk_src_gpc] = { .khz = 72000 },
 			.voltage = 0,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 108000,
+			.domain[nv_clk_src_gpc] = { .khz = 108000 },
 			.voltage = 1,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 180000,
+			.domain[nv_clk_src_gpc] = { .khz = 180000 },
 			.voltage = 2,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 252000,
+			.domain[nv_clk_src_gpc] = { .khz = 252000 },
 			.voltage = 3,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 324000,
+			.domain[nv_clk_src_gpc] = { .khz = 324000 },
 			.voltage = 4,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 396000,
+			.domain[nv_clk_src_gpc] = { .khz = 396000 },
 			.voltage = 5,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 468000,
+			.domain[nv_clk_src_gpc] = { .khz = 468000 },
 			.voltage = 6,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 540000,
+			.domain[nv_clk_src_gpc] = { .khz = 540000 },
 			.voltage = 7,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 612000,
+			.domain[nv_clk_src_gpc] = { .khz = 612000 },
 			.voltage = 8,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 648000,
+			.domain[nv_clk_src_gpc] = { .khz = 648000 },
 			.voltage = 9,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 684000,
+			.domain[nv_clk_src_gpc] = { .khz = 684000 },
 			.voltage = 10,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 708000,
+			.domain[nv_clk_src_gpc] = { .khz = 708000 },
 			.voltage = 11,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 756000,
+			.domain[nv_clk_src_gpc] = { .khz = 756000 },
 			.voltage = 12,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 804000,
+			.domain[nv_clk_src_gpc] = { .khz = 804000 },
 			.voltage = 13,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 852000,
+			.domain[nv_clk_src_gpc] = { .khz = 852000 },
 			.voltage = 14,
 		},
 	},
@@ -481,7 +481,7 @@ gk20a_clk_calc(struct nvkm_clk *base, struct nvkm_cstate *cstate)
 {
 	struct gk20a_clk *clk = gk20a_clk(base);
 
-	return gk20a_pllg_calc_mnp(clk, cstate->domain[nv_clk_src_gpc] *
+	return gk20a_pllg_calc_mnp(clk, cstate->domain[nv_clk_src_gpc].khz *
 					 GK20A_CLK_GPC_MDIV, &clk->pll);
 }
 

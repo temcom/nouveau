@@ -274,7 +274,7 @@ static int
 calc_clk(struct gf100_clk *clk, struct nvkm_cstate *cstate, int idx, int dom)
 {
 	struct gf100_clk_info *info = &clk->eng[idx];
-	u32 freq = cstate->domain[dom];
+	u32 freq = cstate->domain[dom].khz;
 	u32 src0, div0, div1D, div1P = 0;
 	u32 clk0, clk1 = 0;
 
@@ -291,7 +291,7 @@ calc_clk(struct gf100_clk *clk, struct nvkm_cstate *cstate, int idx, int dom)
 		if (idx <= 7)
 			clk1 = calc_pll(clk, idx, freq, &info->coef);
 		else
-			clk1 = cstate->domain[nv_clk_src_hubk06];
+			clk1 = cstate->domain[nv_clk_src_hubk06].khz;
 		clk1 = calc_div(clk, idx, clk1, freq, &div1P);
 	}
 

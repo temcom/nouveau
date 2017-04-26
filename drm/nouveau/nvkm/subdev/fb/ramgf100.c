@@ -124,7 +124,7 @@ gf100_ram_train(struct gf100_ramfuc *fuc, u32 magic)
 }
 
 int
-gf100_ram_calc(struct nvkm_ram *base, u32 freq)
+gf100_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 {
 	struct gf100_ram *ram = gf100_ram(base);
 	struct gf100_ramfuc *fuc = &ram->fuc;

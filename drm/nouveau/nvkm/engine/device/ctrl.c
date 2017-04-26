@@ -108,11 +108,11 @@ nvkm_control_mthd_pstate_attr(struct nvkm_control *ctrl, void *data, u32 size)
 				break;
 		}
 
-		lo = pstate->base.domain[domain->name];
+		lo = pstate->base.domain[domain->name].khz;
 		hi = lo;
 		list_for_each_entry(cstate, &pstate->list, head) {
-			lo = min(lo, cstate->domain[domain->name]);
-			hi = max(hi, cstate->domain[domain->name]);
+			lo = min(lo, cstate->domain[domain->name].khz);
+			hi = max(hi, cstate->domain[domain->name].khz);
 		}
 
 		args->v0.state = pstate->pstate;

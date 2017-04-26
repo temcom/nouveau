@@ -216,7 +216,7 @@ nv50_ram_gpio(struct nv50_ramseq *hwsq, u8 tag, u32 val)
 }
 
 static int
-nv50_ram_calc(struct nvkm_ram *base, u32 freq)
+nv50_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 {
 	struct nv50_ram *ram = nv50_ram(base);
 	struct nv50_ramseq *hwsq = &ram->hwsq;

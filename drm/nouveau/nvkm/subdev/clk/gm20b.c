@@ -468,8 +468,9 @@ gm20b_clk_calc(struct nvkm_clk *base, struct nvkm_cstate *cstate)
 	struct nvkm_volt *volt = base->subdev.device->volt;
 	int ret;
 
-	ret = gk20a_pllg_calc_mnp(&clk->base, cstate->domain[nv_clk_src_gpc] *
-					     GK20A_CLK_GPC_MDIV, &clk->new_pll);
+	ret = gk20a_pllg_calc_mnp(&clk->base,
+				  cstate->domain[nv_clk_src_gpc].khz *
+				  GK20A_CLK_GPC_MDIV, &clk->new_pll);
 	if (ret)
 		return ret;
 
@@ -638,79 +639,79 @@ static struct nvkm_pstate
 gm20b_pstates[] = {
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 76800,
+			.domain[nv_clk_src_gpc] = { .khz = 76800 },
 			.voltage = 0,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 153600,
+			.domain[nv_clk_src_gpc] = { .khz = 153600 },
 			.voltage = 1,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 230400,
+			.domain[nv_clk_src_gpc] = { .khz = 230400 },
 			.voltage = 2,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 307200,
+			.domain[nv_clk_src_gpc] = { .khz = 307200 },
 			.voltage = 3,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 384000,
+			.domain[nv_clk_src_gpc] = { .khz = 384000 },
 			.voltage = 4,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 460800,
+			.domain[nv_clk_src_gpc] = { .khz = 460800 },
 			.voltage = 5,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 537600,
+			.domain[nv_clk_src_gpc] = { .khz = 537600 },
 			.voltage = 6,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 614400,
+			.domain[nv_clk_src_gpc] = { .khz = 614400 },
 			.voltage = 7,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 691200,
+			.domain[nv_clk_src_gpc] = { .khz = 691200 },
 			.voltage = 8,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 768000,
+			.domain[nv_clk_src_gpc] = { .khz = 768000 },
 			.voltage = 9,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 844800,
+			.domain[nv_clk_src_gpc] = { .khz = 844800 },
 			.voltage = 10,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 921600,
+			.domain[nv_clk_src_gpc] = { .khz = 921600 },
 			.voltage = 11,
 		},
 	},
 	{
 		.base = {
-			.domain[nv_clk_src_gpc] = 998400,
+			.domain[nv_clk_src_gpc] = { .khz = 998400 },
 			.voltage = 12,
 		},
 	},
@@ -999,7 +1000,7 @@ gm20b_clk_init_safe_fmax(struct gm20b_clk *clk)
 	for (i = 0; i < nr_pstates; i++)
 		if (pstates[i].base.voltage == id)
 			fmax = max(fmax,
-				   pstates[i].base.domain[nv_clk_src_gpc]);
+				   pstates[i].base.domain[nv_clk_src_gpc].khz);
 
 	if (!fmax) {
 		nvkm_error(subdev, "failed to evaluate safe fmax\n");

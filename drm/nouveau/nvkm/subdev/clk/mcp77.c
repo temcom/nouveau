@@ -203,9 +203,9 @@ static int
 mcp77_clk_calc(struct nvkm_clk *base, struct nvkm_cstate *cstate)
 {
 	struct mcp77_clk *clk = mcp77_clk(base);
-	const int shader = cstate->domain[nv_clk_src_shader];
-	const int core = cstate->domain[nv_clk_src_core];
-	const int vdec = cstate->domain[nv_clk_src_vdec];
+	const int shader = cstate->domain[nv_clk_src_shader].khz;
+	const int core = cstate->domain[nv_clk_src_core].khz;
+	const int vdec = cstate->domain[nv_clk_src_vdec].khz;
 	struct nvkm_subdev *subdev = &clk->base.subdev;
 	u32 out = 0, clock = 0;
 	int N, M, P1, P2 = 0;

@@ -156,7 +156,7 @@ struct nvkm_ram_func {
 	void *(*dtor)(struct nvkm_ram *);
 	int (*init)(struct nvkm_ram *);
 
-	int (*calc)(struct nvkm_ram *, u32 freq);
+	int (*calc)(struct nvkm_ram *, u8 flags, u32 freq);
 	int (*prog)(struct nvkm_ram *);
 	void (*tidy)(struct nvkm_ram *);
 };

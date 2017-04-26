@@ -1110,7 +1110,7 @@ gk104_ram_calc_xits(struct gk104_ram *ram, struct nvkm_ram_data *next)
 }
 
 int
-gk104_ram_calc(struct nvkm_ram *base, u32 freq)
+gk104_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 {
 	struct gk104_ram *ram = gk104_ram(base);
 	struct nvkm_clk *clk = ram->base.fb->subdev.device->clk;

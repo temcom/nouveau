@@ -23,7 +23,7 @@ int gf100_ram_probe_fbps(struct nvkm_device *, unsigned long *);
 int gf100_ram_probe_fbp_ltcs(struct nvkm_device *, int);
 u32  gf100_ram_probe_fbpa_amount(struct nvkm_device *, int);
 int gf100_ram_init(struct nvkm_ram *);
-int gf100_ram_calc(struct nvkm_ram *, u32);
+int gf100_ram_calc(struct nvkm_ram *, u8, u32);
 int gf100_ram_prog(struct nvkm_ram *);
 void gf100_ram_tidy(struct nvkm_ram *);
 
@@ -33,7 +33,7 @@ int gk104_ram_new_(const struct nvkm_ram_func *, struct nvkm_fb *,
 		   struct nvkm_ram **);
 void *gk104_ram_dtor(struct nvkm_ram *);
 int gk104_ram_init(struct nvkm_ram *);
-int gk104_ram_calc(struct nvkm_ram *, u32);
+int gk104_ram_calc(struct nvkm_ram *, u8, u32);
 int gk104_ram_prog(struct nvkm_ram *);
 void gk104_ram_tidy(struct nvkm_ram *);
 

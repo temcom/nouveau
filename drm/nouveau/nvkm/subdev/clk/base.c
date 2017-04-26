@@ -85,7 +85,7 @@ nvkm_cstate_valid(struct nvkm_clk *clk, struct nvkm_cstate *cstate,
 
 	while (domain && domain->name != nv_clk_src_max) {
 		if (domain->flags & NVKM_CLK_DOM_FLAG_VPSTATE) {
-			u32 freq = cstate->domain[domain->name];
+			u32 freq = cstate->domain[domain->name].khz;
 			switch (clk->boost_mode) {
 			case NVKM_CLK_BOOST_NONE:
 				if (clk->base_khz && freq > clk->base_khz)
@@ -250,7 +250,7 @@ nvkm_cstate_new(struct nvkm_clk *clk, int idx, struct nvkm_pstate *pstate)
 		if (domain->flags & NVKM_CLK_DOM_FLAG_CORE) {
 			u32 freq = nvkm_clk_adjust(clk, true, pstate->pstate,
 						   domain->bios, cstepX.freq);
-			cstate->domain[domain->name] = freq;
+			cstate->domain[domain->name].khz = freq;
 		}
 		domain++;
 	}
@@ -283,9 +283,10 @@ nvkm_pstate_prog(struct nvkm_clk *clk, int pstatei)
 
 	if (fb && fb->ram && fb->ram->func->calc) {
 		struct nvkm_ram *ram = fb->ram;
-		int khz = pstate->base.domain[nv_clk_src_mem];
+		u8 flags = pstate->base.domain[nv_clk_src_mem].flags;
+		int khz = pstate->base.domain[nv_clk_src_mem].khz;
 		do {
-			ret = ram->func->calc(ram, khz);
+			ret = ram->func->calc(ram, flags, khz);
 			if (ret == 0)
 				ret = ram->func->prog(ram);
 		} while (ret > 0);
@@ -356,14 +357,14 @@ nvkm_pstate_info(struct nvkm_clk *clk, struct nvkm_pstate *pstate)
 		snprintf(name, sizeof(name), "%02x", pstate->pstate);
 
 	while ((++clock)->name != nv_clk_src_max) {
-		u32 lo = pstate->base.domain[clock->name];
+		u32 lo = pstate->base.domain[clock->name].khz;
 		u32 hi = lo;
 		if (hi == 0)
 			continue;
 
 		nvkm_debug(subdev, "%02x: %10d KHz\n", clock->name, lo);
 		list_for_each_entry(cstate, &pstate->list, head) {
-			u32 freq = cstate->domain[clock->name];
+			u32 freq = cstate->domain[clock->name].khz;
 			lo = min(lo, freq);
 			hi = max(hi, freq);
 			nvkm_debug(subdev, "%10d KHz\n", freq);
@@ -428,11 +429,11 @@ nvkm_pstate_new(struct nvkm_clk *clk, int idx)
 	pstate->pcie_speed = perfE.pcie_speed;
 	pstate->pcie_width = perfE.pcie_width;
 	cstate->voltage = perfE.voltage;
-	cstate->domain[nv_clk_src_core] = perfE.core;
-	cstate->domain[nv_clk_src_shader] = perfE.shader;
-	cstate->domain[nv_clk_src_mem] = perfE.memory;
-	cstate->domain[nv_clk_src_vdec] = perfE.vdec;
-	cstate->domain[nv_clk_src_dom6] = perfE.disp;
+	cstate->domain[nv_clk_src_core].khz = perfE.core;
+	cstate->domain[nv_clk_src_shader].khz = perfE.shader;
+	cstate->domain[nv_clk_src_mem].khz = perfE.memory;
+	cstate->domain[nv_clk_src_vdec].khz = perfE.vdec;
+	cstate->domain[nv_clk_src_dom6].khz = perfE.disp;
 
 	while (ver >= 0x40 && (++domain)->name != nv_clk_src_max) {
 		struct nvbios_perfS perfS;
@@ -449,7 +450,11 @@ nvkm_pstate_new(struct nvkm_clk *clk, int idx)
 							perfS.v40.khz);
 		}
 
-		cstate->domain[domain->name] = perfS.v40.khz;
+		if (perfS.v40.flags & NVBIOS_PERF_NO_DIV)
+			cstate->domain[domain->name].flags |= NVKM_CLK_NO_DIV;
+		if (perfS.v40.flags & NVBIOS_PERF_NO_PLL)
+			cstate->domain[domain->name].flags |= NVKM_CLK_NO_PLL;
+		cstate->domain[domain->name].khz = perfS.v40.khz;
 	}
 
 	data = nvbios_cstepEm(bios, pstate->pstate, &ver, &hdr, &cstepE);
@@ -605,7 +610,7 @@ nvkm_clk_init(struct nvkm_subdev *subdev)
 			nvkm_error(subdev, "%02x freq unknown\n", clock->name);
 			return ret;
 		}
-		clk->bstate.base.domain[clock->name] = ret;
+		clk->bstate.base.domain[clock->name].khz = ret;
 		clock++;
 	}
 

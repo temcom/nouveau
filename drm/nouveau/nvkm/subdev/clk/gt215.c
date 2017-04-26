@@ -274,7 +274,7 @@ static int
 calc_clk(struct gt215_clk *clk, struct nvkm_cstate *cstate,
 	 int idx, u32 pll, int dom)
 {
-	int ret = gt215_pll_info(&clk->base, idx, pll, cstate->domain[dom],
+	int ret = gt215_pll_info(&clk->base, idx, pll, cstate->domain[dom].khz,
 				 &clk->eng[dom]);
 	if (ret >= 0)
 		return 0;
@@ -285,7 +285,7 @@ static int
 calc_host(struct gt215_clk *clk, struct nvkm_cstate *cstate)
 {
 	int ret = 0;
-	u32 kHz = cstate->domain[nv_clk_src_host];
+	u32 kHz = cstate->domain[nv_clk_src_host].khz;
 	struct gt215_clk_info *info = &clk->eng[nv_clk_src_host];
 
 	if (kHz == 277000) {
@@ -473,7 +473,7 @@ gt215_clk_calc(struct nvkm_clk *base, struct nvkm_cstate *cstate)
 	 * whether to use a PLL or not... but using a PLL defeats the purpose */
 	if (core->pll) {
 		ret = gt215_clk_info(&clk->base, 0x10,
-				     cstate->domain[nv_clk_src_core_intm],
+				     cstate->domain[nv_clk_src_core_intm].khz,
 				     &clk->eng[nv_clk_src_core_intm]);
 		if (ret < 0)
 			return ret;

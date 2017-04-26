@@ -56,8 +56,13 @@ enum nv_clk_src {
 struct nvkm_cstate {
 	struct list_head head;
 	u8  voltage;
-	u32 domain[nv_clk_src_max];
 	u8  id;
+	struct {
+#define NVKM_CLK_NO_DIV                                                    0x01
+#define NVKM_CLK_NO_PLL                                                    0x02
+		u8 flags;
+		u32 khz;
+	} domain[nv_clk_src_max];
 };
 
 struct nvkm_pstate {

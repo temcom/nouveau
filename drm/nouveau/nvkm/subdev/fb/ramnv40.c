@@ -31,7 +31,7 @@
 #include <subdev/timer.h>
 
 static int
-nv40_ram_calc(struct nvkm_ram *base, u32 freq)
+nv40_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 {
 	struct nv40_ram *ram = nv40_ram(base);
 	struct nvkm_subdev *subdev = &ram->base.fb->subdev;

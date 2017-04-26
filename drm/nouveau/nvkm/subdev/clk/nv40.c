@@ -146,8 +146,8 @@ static int
 nv40_clk_calc(struct nvkm_clk *base, struct nvkm_cstate *cstate)
 {
 	struct nv40_clk *clk = nv40_clk(base);
-	int gclk = cstate->domain[nv_clk_src_core];
-	int sclk = cstate->domain[nv_clk_src_shader];
+	int gclk = cstate->domain[nv_clk_src_core].khz;
+	int sclk = cstate->domain[nv_clk_src_shader].khz;
 	int N1, M1, N2, M2, log2P;
 	int ret;
 

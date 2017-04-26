@@ -192,7 +192,7 @@ gt215_link_train(struct gt215_ram *ram)
 		goto out;
 
 	/* First: clock up/down */
-	ret = ram->base.func->calc(&ram->base, (u32) M0205T.freq * 1000);
+	ret = ram->base.func->calc(&ram->base, 0, (u32) M0205T.freq * 1000);
 	if (ret)
 		goto out;
 
@@ -235,7 +235,7 @@ gt215_link_train(struct gt215_ram *ram)
 
 	ram_exec(fuc, true);
 
-	ram->base.func->calc(&ram->base, clk_current);
+	ram->base.func->calc(&ram->base, 0, clk_current);
 	ram_exec(fuc, true);
 
 	/* Post-processing, avoids flicker */
@@ -490,7 +490,7 @@ gt215_ram_gpio(struct gt215_ramfuc *fuc, u8 tag, u32 val)
 }
 
 static int
-gt215_ram_calc(struct nvkm_ram *base, u32 freq)
+gt215_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 {
 	struct gt215_ram *ram = gt215_ram(base);
 	struct gt215_ramfuc *fuc = &ram->fuc;

@@ -26,7 +26,10 @@ u32 nvbios_perfEp(struct nvkm_bios *, int idx,
 struct nvbios_perfS {
 	union {
 		struct {
-			u32 freq;
+#define NVBIOS_PERF_NO_DIV                                                 0x01
+#define NVBIOS_PERF_NO_PLL                                                 0x02
+			u8 flags;
+			u32 khz;
 		} v40;
 	};
 };

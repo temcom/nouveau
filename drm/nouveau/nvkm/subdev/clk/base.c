@@ -443,13 +443,13 @@ nvkm_pstate_new(struct nvkm_clk *clk, int idx)
 			continue;
 
 		if (domain->flags & NVKM_CLK_DOM_FLAG_CORE) {
-			perfS.v40.freq = nvkm_clk_adjust(clk, false,
-							 pstate->pstate,
-							 domain->bios,
-							 perfS.v40.freq);
+			perfS.v40.khz = nvkm_clk_adjust(clk, false,
+							pstate->pstate,
+							domain->bios,
+							perfS.v40.khz);
 		}
 
-		cstate->domain[domain->name] = perfS.v40.freq;
+		cstate->domain[domain->name] = perfS.v40.khz;
 	}
 
 	data = nvbios_cstepEm(bios, pstate->pstate, &ver, &hdr, &cstepE);

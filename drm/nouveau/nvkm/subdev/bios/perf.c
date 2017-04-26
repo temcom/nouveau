@@ -185,11 +185,14 @@ nvbios_perfSp(struct nvkm_bios *bios, u32 perfE, int idx,
 	      u8 *ver, u8 *hdr, u8 cnt, u8 len,
 	      struct nvbios_perfS *info)
 {
-	u32 data = nvbios_perfSe(bios, perfE, idx, ver, hdr, cnt, len);
+	u32 data = nvbios_perfSe(bios, perfE, idx, ver, hdr, cnt, len), mode;
 	memset(info, 0x00, sizeof(*info));
 	switch (!!data * *ver) {
 	case 0x40:
-		info->v40.freq = (nvbios_rd16(bios, data + 0x00) & 0x3fff) * 1000;
+		mode = nvbios_rd16(bios, data + 0x00);
+		if (mode & 0x8000) info->v40.flags |= NVBIOS_PERF_NO_PLL;
+		if (mode & 0x4000) info->v40.flags |= NVBIOS_PERF_NO_DIV;
+		info->v40.khz = (mode & 0x3fff) * 1000;
 		break;
 	default:
 		break;

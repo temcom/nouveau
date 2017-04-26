@@ -39,6 +39,8 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq)
 	MR_LOAD(xd, !c->ramcfg_DLLoff);
 
 	switch (ram->next->bios.ramcfg_ver) {
+	case 0x10:
+		break;
 	case 0x11:
 		MR_LOAD(pd, c->ramcfg_11_01_80); /*XXX: RM !1->0 */
 		MR_LOAD(lf, c->ramcfg_11_01_40);
@@ -52,6 +54,8 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq)
 	}
 
 	switch (ram->next->bios.timing_ver) {
+	case 0x10:
+		break;
 	case 0x20:
 		MR_LOAD(WL, (c->timing[1] & 0x00000f80) >> 7);
 		MR_LOAD(CL, ((c->timing[1] & 0x0000001f) >>  0) - 5);

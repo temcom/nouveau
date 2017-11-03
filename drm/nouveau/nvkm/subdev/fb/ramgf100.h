@@ -18,6 +18,8 @@ struct gf100_ram {
 		PLL2,	/* mpllsrc + mpll */
 		INVALID
 	} mode, from;
+	u32 dsrc;
+	u32 dctl;
 };
 
 int gf100_ram_new_(const struct nvkm_ram_func *, struct nvkm_fb *,

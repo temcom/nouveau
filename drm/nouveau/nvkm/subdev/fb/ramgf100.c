@@ -147,8 +147,8 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		memx_wr32(memx, 0x10f998, 0x00011a00);
 	} else {
 		if (ram->from != DIV) {
-			memx_wr32(memx, 0x137310, 0x81201614); /*XXX:sometimes?*/
-			memx_wr32(memx, 0x137300, 0x00000003);
+			memx_wr32(memx, 0x137310, ram->dctl); /*XXX:sometimes?*/
+			memx_wr32(memx, 0x137300, ram->dsrc);
 		}
 		memx_wr32(memx, 0x10f988, 0x20010000);
 		memx_wr32(memx, 0x10f98c, 0x00000000);
@@ -181,14 +181,14 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f830, 0x41000000, 0x41000000);
 		memx_mask(memx, 0x10f830, 0x01000000, 0x00000000);
 		memx_mask(memx, 0x132100, 0x00000100, 0x00000100);
-		memx_wr32(memx, 0x137310, 0x81201614); /*XXX:sometimes?*/
+		memx_wr32(memx, 0x137310, ram->dctl); /*XXX:sometimes?*/
 		memx_mask(memx, 0x10f050, 0x00000000, 0x00000000, FORCE);
 		memx_mask(memx, 0x1373ec, 0x00003f3f, 0x00000f0f);
 		memx_mask(memx, 0x1373f0, 0x00000001, 0x00000001);
 	}
 
 	if (ram->mode == DIV)
-		memx_wr32(memx, 0x137310, 0x81201614);
+		memx_wr32(memx, 0x137310, ram->dctl & 0xf7ffffff);
 
 	if (ram->from != DIV) {
 		memx_mask(memx, 0x132100, 0x00000100, 0x00000000);
@@ -319,8 +319,8 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		 * this is an intermediate clock that's used during
 		 * the MPLL update.
 		 */
-		memx_wr32(memx, 0x137310, 0x81200608);
-		memx_wr32(memx, 0x137300, 0x00000103);
+		memx_wr32(memx, 0x137310, ram->dctl);
+		memx_wr32(memx, 0x137300, ram->dsrc);
 	} else
 	if (ram->mode != DIV) {
 		/* Setup and enable MPLL. */
@@ -365,7 +365,7 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	}
 
 	if (ram->from == DIV && ram->mode == DIV)
-		memx_wr32(memx, 0x137310, 0x81200816);
+		memx_wr32(memx, 0x137310, ram->dctl);
 
 	memx_mask(memx, 0x10f874, 0x04000000, lowspeed << 26);
 
@@ -399,6 +399,38 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 }
 
 static int
+gf100_ram_calc_src(struct nvkm_device *device, u32 rsrc, u32 rctl,
+		   u32 khz, u32 *dsrc, u32 *dctl)
+{
+	struct nvkm_clk *clk = device->clk;
+	int ref, div;
+
+	/* Configure divider to use SPPLLx as its reference clock. */
+	*dctl  = nvkm_rd32(device, rctl);
+	*dsrc  = nvkm_rd32(device, rsrc);
+	*dsrc |= 0x00000003;
+
+	/* Determine input frequency. */
+	if (!(*dsrc & 0x00000100))
+		ref = nvkm_clk_read(clk, nv_clk_src_sppll0);
+	else
+		ref = nvkm_clk_read(clk, nv_clk_src_sppll1);
+	if (ref < 0)
+		return ref;
+
+	/* Calculate divider that'll get us to the target clock. */
+	div = ((ref * 2) / khz) - 2;
+	if (div < 0 || div > 63)
+		return -EINVAL;
+
+	if (*dsrc & 0x00000100)
+		*dctl = (*dctl & ~0x00003f00) | div << 8;
+	else
+		*dctl = (*dctl & ~0x0000003f) | div;
+	return (ref * 2) / (div + 2);
+}
+
+static int
 gf100_ram_calc_pll(struct gf100_ram *ram)
 {
 	int mode;
@@ -415,8 +447,17 @@ gf100_ram_calc_pll(struct gf100_ram *ram)
 static int
 gf100_ram_calc_div(struct gf100_ram *ram)
 {
+	struct nvkm_device *device = ram->base.fb->subdev.device;
+	struct nvkm_ram_data *c = ram->base.next;
+	int khz;
+
+	khz = gf100_ram_calc_src(device, 0x137300, 0x137310, c->freq,
+				 &ram->dsrc, &ram->dctl);
+	if (khz < 0)
+		return khz;
+
 	ram->mode = DIV;
-	return 324000;
+	return khz;
 }
 
 static int

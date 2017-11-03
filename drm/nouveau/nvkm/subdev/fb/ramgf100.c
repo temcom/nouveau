@@ -146,6 +146,10 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		memx_wr32(memx, 0x10f990, 0x20012001);
 		memx_wr32(memx, 0x10f998, 0x00011a00);
 	} else {
+		if (ram->from != DIV) {
+			memx_wr32(memx, 0x137310, 0x81201614); /*XXX:sometimes?*/
+			memx_wr32(memx, 0x137300, 0x00000003);
+		}
 		memx_wr32(memx, 0x10f988, 0x20010000);
 		memx_wr32(memx, 0x10f98c, 0x00000000);
 		memx_wr32(memx, 0x10f990, 0x20012001);
@@ -160,16 +164,42 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f824, 0x00000000, 0x00000000, FORCE);
 	memx_wr32(memx, 0x10f210, 0x00000000);
 	memx_nsec(memx, 1000);
+	if (ram->from != DIV)
+		gf100_ram_calc_train(ram, 0xffffffff, 0x000c1001);
 	memx_wr32(memx, 0x10f310, 0x00000001);
 	memx_nsec(memx, 1000);
 	memx_wr32(memx, 0x10f090, 0x00000061);
 	memx_wr32(memx, 0x10f090, 0xc000007f);
 	memx_nsec(memx, 1000);
 
-	if (ram->mode == DIV) {
-		memx_wr32(memx, 0x137310, 0x81201614);
-	} else {
+	if (ram->mode != DIV)
 		memx_mask(memx, 0x10f824, 0xffffffff, 0x00007fd4);
+
+	if (ram->from != DIV) {
+		memx_mask(memx, 0x10f808, 0x00080000, 0x00000000);
+		memx_mask(memx, 0x10f200, 0x00008000, 0x00008000);
+		memx_mask(memx, 0x10f830, 0x41000000, 0x41000000);
+		memx_mask(memx, 0x10f830, 0x01000000, 0x00000000);
+		memx_mask(memx, 0x132100, 0x00000100, 0x00000100);
+		memx_wr32(memx, 0x137310, 0x81201614); /*XXX:sometimes?*/
+		memx_mask(memx, 0x10f050, 0x00000000, 0x00000000, FORCE);
+		memx_mask(memx, 0x1373ec, 0x00003f3f, 0x00000f0f);
+		memx_mask(memx, 0x1373f0, 0x00000001, 0x00000001);
+	}
+
+	if (ram->mode == DIV)
+		memx_wr32(memx, 0x137310, 0x81201614);
+
+	if (ram->from != DIV) {
+		memx_mask(memx, 0x132100, 0x00000100, 0x00000000);
+		nvkm_memx_fbpa_war_nsec(memx, 25000000 / c->freq + 1);
+		memx_mask(memx, 0x10f830, 0x40700007, 0x00300007);
+		memx_mask(memx, 0x1373f0, 0x00000002, 0x00000000);
+		memx_mask(memx, 0x10f824, 0xfffff9ff, 0x00007877);
+		memx_mask(memx, 0x132000, 0x00000100, 0x00000000);
+	}
+
+	if (ram->mode != DIV) {
 		memx_mask(memx, 0x10f800, 0x000000ff, 0x00000000, FORCE);
 		memx_mask(memx, 0x1373ec, 0x00003f3f, 0x00000000, FORCE);
 		memx_mask(memx, 0x1373f0, 0x00000002, 0x00000002, FORCE);
@@ -271,7 +301,7 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	int ret;
 
 	if ((ram->from == DIV && (ram->mode != DIV && ram->mode != PLL)) ||
-	    (ram->from == PLL && (ram->mode != PLL)) ||
+	    (ram->from == PLL && (ram->mode != DIV && ram->mode != PLL)) ||
 	    (ram->from != DIV && ram->from != PLL))
 		return -ENOSYS;
 
@@ -322,7 +352,11 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		if (!(memx_rd32(memx, 0x10f830) & 0x00000006))
 			gf100_ram_calc_sddr3_r10f830(ram, c->freq < somefreq);
 		gf100_ram_calc_sddr3_r137370(ram, false);
+		memx_mask(memx, 0x132018, 0x00004000, 0x00000000);
 		memx_mask(memx, 0x132000, 0x00000001, 0x00000000);
+	}
+
+	if (ram->from != DIV && ram->mode != DIV) {
 		memx_wr32(memx, 0x137320, 0x00000103);
 		memx_wr32(memx, 0x137330, 0x81200606);
 		memx_wr32(memx, 0x132004, 0x00062406);
@@ -330,7 +364,7 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_wait(memx, 0x137390, 0x00000002, 0x00000002, 64000);
 	}
 
-	if (ram->mode == DIV)
+	if (ram->from == DIV && ram->mode == DIV)
 		memx_wr32(memx, 0x137310, 0x81200816);
 
 	memx_mask(memx, 0x10f874, 0x04000000, lowspeed << 26);

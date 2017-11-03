@@ -9,7 +9,7 @@
 struct os_device {
 	struct nvkm_device *device;
 	struct list_head head;
-	char *cfg;
+	char cfg[512];
 	char *dbg;
 	struct pci_dev pdev;
 };

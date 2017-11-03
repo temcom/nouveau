@@ -91,7 +91,11 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	u8 r100b0c;
 	int ret;
 
-	ret = nvkm_gddr5_calc(&ram->base, false, true);
+	if ((ram->from == DIV && ram->mode != DIV) ||
+	    (ram->from != DIV))
+		return -ENOSYS;
+
+	ret = nvkm_gddr5_calc(&ram->base, false, ram->mode == DIV);
 	if (ret)
 		return ret;
 
@@ -169,6 +173,10 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	u8 r100b0c;
 	int ret;
 
+	if ((ram->from == DIV && ram->mode != DIV) ||
+	    (ram->from != DIV))
+		return -ENOSYS;
+
 	ret = nvkm_sddr3_calc(&ram->base);
 	if (ret)
 		return ret;
@@ -209,6 +217,13 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 }
 
 static int
+gf100_ram_calc_div(struct gf100_ram *ram)
+{
+	ram->mode = DIV;
+	return 324000;
+}
+
+static int
 gf100_ram_calc_xits(struct gf100_ram *ram, u8 flags)
 {
 	struct nvkm_device *device = ram->base.fb->subdev.device;
@@ -219,8 +234,28 @@ gf100_ram_calc_xits(struct gf100_ram *ram, u8 flags)
 	ret = nvkm_memx_init(device->pmu, &ram->memx);
 	if (ret)
 		return ret;
+	ram->mode = INVALID;
+
+	/* Determine current clock mode. */
+	if (nvkm_rd32(device, 0x137360) & 0x00000002) {
+		if (nvkm_rd32(device, 0x137360) & 0x00000001)
+			ram->from = DIV;
+		else
+			ram->from = PLL;
+	} else {
+		if (nvkm_rd32(device, 0x1373f0) & 0x00000002)
+			ram->from = PLL2;
+		else
+			ram->from = DIV;
+	}
 
 	nvkm_memx_fbpa_war_nsec(ram->memx, 25000000 / khz + 1);
+
+	/* Determine target clock mode, and coefficients. */
+	if (!(flags & NVKM_CLK_NO_DIV))
+		gf100_ram_calc_div(ram);
+	if (ram->mode == INVALID)
+		return -ENOSYS;
 
 	/* Reset MPLL, if it's not currently in use. */
 	if ( (nvkm_rd32(device, 0x132000) & 0x00000002) ||

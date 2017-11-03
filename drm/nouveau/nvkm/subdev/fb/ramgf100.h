@@ -11,6 +11,13 @@ struct gf100_ram {
 	struct nvkm_memx *memx;
 	struct nvbios_pll refpll;
 	struct nvbios_pll mempll;
+
+	enum {
+		DIV,	/* mdiv */
+		PLL,	/* mpll */
+		PLL2,	/* mpllsrc + mpll */
+		INVALID
+	} mode, from;
 };
 
 int gf100_ram_new_(const struct nvkm_ram_func *, struct nvkm_fb *,

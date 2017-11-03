@@ -107,7 +107,7 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	int ret;
 
 	if ((ram->from == DIV && ram->mode != DIV && ram->mode != PLL2) ||
-	    (ram->from != DIV))
+	    (ram->from != DIV && ram->mode != DIV))
 		return -ENOSYS;
 
 	ret = nvkm_gddr5_calc(&ram->base, false, ram->mode == DIV);
@@ -271,7 +271,8 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	int ret;
 
 	if ((ram->from == DIV && (ram->mode != DIV && ram->mode != PLL)) ||
-	    (ram->from != DIV))
+	    (ram->from == PLL && (ram->mode != PLL)) ||
+	    (ram->from != DIV && ram->from != PLL))
 		return -ENOSYS;
 
 	ret = nvkm_sddr3_calc(&ram->base);
@@ -281,6 +282,16 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	/* Do some preparations for PLL-mode transitions early to reduce
 	 * the amount of time we need to have FB access disabled.
 	 */
+	if (ram->from != DIV) {
+		/* Prepare the divider-mode clock.
+		 *
+		 * If we're transitioning to another PLL mode, then
+		 * this is an intermediate clock that's used during
+		 * the MPLL update.
+		 */
+		memx_wr32(memx, 0x137310, 0x81200608);
+		memx_wr32(memx, 0x137300, 0x00000103);
+	} else
 	if (ram->mode != DIV) {
 		/* Setup and enable MPLL. */
 		memx_wr32(memx, 0x137320, 0x00000103);
@@ -289,8 +300,10 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_mask(memx, 0x132000, 0x00000001, 0x00000001);
 		memx_wait(memx, 0x137390, 0x00000002, 0x00000002, 64000);
 		gf100_ram_calc_sddr3_r132018(ram, lowspeed);
-		gf100_ram_calc_sddr3_r137370(ram, true);
 	}
+
+	if (ram->from != DIV || ram->mode != DIV)
+		gf100_ram_calc_sddr3_r137370(ram, true);
 
 	/* Wait for a vblank window, and disable FB access. */
 	r100b0c = gf100_ram_calc_fb_access(ram, false, 0x12);
@@ -303,6 +316,19 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	memx_nsec(memx, 1000);
 	memx_wr32(memx, 0x10f090, 0x00000060);
 	memx_wr32(memx, 0x10f090, 0xc000007e);
+
+	if (ram->from != DIV) {
+		memx_mask(memx, 0x137360, 0x00000001, 0x00000001);
+		if (!(memx_rd32(memx, 0x10f830) & 0x00000006))
+			gf100_ram_calc_sddr3_r10f830(ram, c->freq < somefreq);
+		gf100_ram_calc_sddr3_r137370(ram, false);
+		memx_mask(memx, 0x132000, 0x00000001, 0x00000000);
+		memx_wr32(memx, 0x137320, 0x00000103);
+		memx_wr32(memx, 0x137330, 0x81200606);
+		memx_wr32(memx, 0x132004, 0x00062406);
+		memx_mask(memx, 0x132000, 0x00000001, 0x00000001);
+		memx_wait(memx, 0x137390, 0x00000002, 0x00000002, 64000);
+	}
 
 	if (ram->mode == DIV)
 		memx_wr32(memx, 0x137310, 0x81200816);

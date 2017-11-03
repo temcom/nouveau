@@ -128,14 +128,14 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		}
 
 		memx_mask(memx, 0x10fe20, 0x00000005, 0x00000000, FORCE);
-		memx_wr32(memx, 0x137320, 0x00000003);
-		memx_wr32(memx, 0x137330, 0x81200006);
-		memx_mask(memx, 0x10fe24, 0xffffffff, 0x0001160f);
+		memx_wr32(memx, 0x137320, ram->rsrc);
+		memx_wr32(memx, 0x137330, ram->rctl);
+		memx_mask(memx, 0x10fe24, 0xffffffff, ram->rpll);
 		memx_mask(memx, 0x10fe20, 0x00000001, 0x00000001);
 		memx_wait(memx, 0x137390, 0x00020000, 0x00020000, 64000);
 		memx_mask(memx, 0x10fe20, 0x00000004, 0x00000004);
 
-		memx_wr32(memx, 0x132004, 0x00011b0a);
+		memx_wr32(memx, 0x132004, ram->mpll);
 		memx_mask(memx, 0x132000, 0x00000101, 0x00000101);
 		memx_wait(memx, 0x137390, 0x00000002, 0x00000002, 64000);
 
@@ -324,9 +324,9 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	} else
 	if (ram->mode != DIV) {
 		/* Setup and enable MPLL. */
-		memx_wr32(memx, 0x137320, 0x00000103);
-		memx_wr32(memx, 0x137330, 0x81200606);
-		memx_wr32(memx, 0x132004, 0x00051806);
+		memx_wr32(memx, 0x137320, ram->rsrc);
+		memx_wr32(memx, 0x137330, ram->rctl);
+		memx_wr32(memx, 0x132004, ram->mpll);
 		memx_mask(memx, 0x132000, 0x00000001, 0x00000001);
 		memx_wait(memx, 0x137390, 0x00000002, 0x00000002, 64000);
 		gf100_ram_calc_sddr3_r132018(ram, lowspeed);
@@ -357,9 +357,9 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	}
 
 	if (ram->from != DIV && ram->mode != DIV) {
-		memx_wr32(memx, 0x137320, 0x00000103);
-		memx_wr32(memx, 0x137330, 0x81200606);
-		memx_wr32(memx, 0x132004, 0x00062406);
+		memx_wr32(memx, 0x137320, ram->rsrc);
+		memx_wr32(memx, 0x137330, ram->rctl);
+		memx_wr32(memx, 0x132004, ram->mpll);
 		memx_mask(memx, 0x132000, 0x00000001, 0x00000001);
 		memx_wait(memx, 0x137390, 0x00000002, 0x00000002, 64000);
 	}
@@ -431,8 +431,13 @@ gf100_ram_calc_src(struct nvkm_device *device, u32 rsrc, u32 rctl,
 }
 
 static int
-gf100_ram_calc_pll(struct gf100_ram *ram)
+gf100_ram_calc_pll(struct gf100_ram *ram, bool refclk_alt)
 {
+	struct nvkm_subdev *subdev = &ram->base.fb->subdev;
+	struct nvkm_device *device = subdev->device;
+	struct nvkm_ram_data *c = ram->base.next;
+	struct nvbios_pll pll;
+	int khz, N, M, P;
 	int mode;
 
 	if (ram->base.type == NVKM_RAM_TYPE_GDDR5)
@@ -440,8 +445,51 @@ gf100_ram_calc_pll(struct gf100_ram *ram)
 	else
 		mode = PLL;
 
+	/* Transition clock to use while MPLL is being modified. */
+	khz = gf100_ram_calc_src(device, 0x137300, 0x137310,
+				 405000 /*XXX: hardcoded, or vbios? */,
+				 &ram->dsrc, &ram->dctl);
+	if (khz < 0)
+		return khz;
+
+	/* MPLL reference clock. */
+	if (mode == PLL2) {
+		/* MPLLSRC reference clock. */
+		khz = gf100_ram_calc_src(device, 0x137320, 0x137330,
+					 ram->refpll.refclk,
+					 &ram->rsrc, &ram->rctl);
+		if (khz < 0)
+			return khz;
+
+		/* MPLLSRC. */
+		pll = ram->refpll;
+		pll.refclk = khz;
+		khz = gt215_pll_calc(subdev, &pll,
+				     refclk_alt ? ram->mempll.refclk_alt :
+						  ram->mempll.refclk,
+				     &N, NULL, &M, &P);
+		if (khz < 0)
+			return khz;
+
+		ram->rpll = (P << 16) | (N << 8) | M;
+	} else {
+		khz = gf100_ram_calc_src(device, 0x137320, 0x137330,
+					 ram->mempll.refclk,
+					 &ram->rsrc, &ram->rctl);
+		if (khz < 0)
+			return khz;
+	}
+
+	/* And, finally, MPLL. */
+	pll = ram->mempll;
+	pll.refclk = khz;
+	khz = gt215_pll_calc(subdev, &pll, c->freq, &N, NULL, &M, &P);
+	if (khz < 0)
+		return khz;
+
+	ram->mpll = (P << 16) | (N << 8) | M;
 	ram->mode = mode;
-	return 324000;
+	return khz;
 }
 
 static int
@@ -491,8 +539,15 @@ gf100_ram_calc_xits(struct gf100_ram *ram, u8 flags)
 	/* Determine target clock mode, and coefficients. */
 	if (!(flags & NVKM_CLK_NO_DIV))
 		gf100_ram_calc_div(ram);
-	if (!(flags & NVKM_CLK_NO_PLL) && ram->mode == INVALID)
-		gf100_ram_calc_pll(ram);
+	if (!(flags & NVKM_CLK_NO_PLL) && ram->mode == INVALID) {
+		int khz = gf100_ram_calc_pll(ram, false);
+		if (khz != ram->base.next->freq) {
+			int alt = gf100_ram_calc_pll(ram, true);
+			if (abs(alt - ram->base.next->freq) >
+			    abs(khz - ram->base.next->freq))
+				gf100_ram_calc_pll(ram, false);
+		}
+	}
 	if (ram->mode == INVALID)
 		return -ENOSYS;
 

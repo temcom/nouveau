@@ -20,6 +20,10 @@ struct gf100_ram {
 	} mode, from;
 	u32 dsrc;
 	u32 dctl;
+	u32 rsrc;
+	u32 rctl;
+	u32 rpll;
+	u32 mpll;
 };
 
 int gf100_ram_new_(const struct nvkm_ram_func *, struct nvkm_fb *,

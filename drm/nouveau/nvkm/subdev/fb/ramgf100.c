@@ -692,13 +692,17 @@ gf100_ram_prog_10f4xx(struct gf100_ram *ram, u32 khz)
 	struct nvkm_device *device = ram->base.fb->subdev.device;
 	struct nvbios_ramcfg *v = &ram->base.diff;
 	struct nvkm_ram_data c;
-	u32 mask = 0, data = 0;
+	u32 mask, data;
 	int ret;
 
 	ret = nvkm_ram_data(&ram->base, khz, &c);
 	if (ret)
 		return;
 
+	if (mask = 0, data = 0, v->rammap_10_05_0003fe00) {
+		data |= c.bios.rammap_10_05_0003fe00 << 12;
+		mask |= 0x001ff000;
+	}
 	nvkm_mask(device, 0x10f468, mask, data);
 
 	if (mask = 0, data = 0, v->rammap_10_05_00040000) {
@@ -1050,6 +1054,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->rammap_10_05_01f00000 |= c->rammap_10_05_01f00000 != 0;
 	v->rammap_10_05_00080000 |= c->rammap_10_05_00080000 != 0;
 	v->rammap_10_05_00040000 |= c->rammap_10_05_00040000 != 0;
+	v->rammap_10_05_0003fe00 |= c->rammap_10_05_0003fe00 != 0;
 done:
 	if (ret)
 		kfree(cfg);

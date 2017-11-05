@@ -38,6 +38,7 @@ gf108_ram = {
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
 	.init = gf100_ram_init,
 	.calc = gf100_ram_calc,
+	.calc_r61c140_100c00 = gf104_ram_calc_r100c00,
 	.prog = gf100_ram_prog,
 	.tidy = gf100_ram_tidy,
 };

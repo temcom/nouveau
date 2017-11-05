@@ -165,6 +165,7 @@ struct nvkm_ram_func {
 	int (*init)(struct nvkm_ram *);
 
 	int (*calc)(struct nvkm_ram *, u8 flags, u32 freq);
+	void (*calc_r61c140_100c00)(struct nvkm_ram *);
 	int (*prog)(struct nvkm_ram *);
 	void (*tidy)(struct nvkm_ram *);
 };

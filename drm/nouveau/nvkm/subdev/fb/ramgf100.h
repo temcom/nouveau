@@ -32,6 +32,9 @@ struct gf100_ram {
 int gf100_ram_new_(const struct nvkm_ram_func *, struct nvkm_fb *,
 		   struct nvkm_ram **);
 int gf100_ram_calc(struct nvkm_ram *, u8, u32);
+void gf100_ram_calc_r61c140(struct nvkm_ram *);
 int gf100_ram_prog(struct nvkm_ram *);
 void gf100_ram_tidy(struct nvkm_ram *);
+
+void gf104_ram_calc_r100c00(struct nvkm_ram *);
 #endif

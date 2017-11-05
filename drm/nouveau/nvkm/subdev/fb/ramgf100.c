@@ -35,6 +35,22 @@
 #include <engine/disp.h>
 #include <engine/disp/head.h> /*XXX*/
 
+void
+gf100_ram_calc_r61c140(struct nvkm_ram *base)
+{
+	struct gf100_ram *ram = gf100_ram(base);
+	struct nvbios_ramcfg *v = &ram->base.diff;
+	struct nvkm_ram_data *c = ram->base.next;
+	struct nvkm_memx *memx = ram->memx;
+	u32 mask = 0, data = 0;
+
+	if (v->ramcfg_10_02_20) {
+		data |= 0x08000000 * !!c->bios.ramcfg_10_02_20;
+		mask |= 0x08000000;
+	}
+	memx_mask(memx, 0x61c140, mask, data);
+}
+
 static void
 gf100_ram_calc_timing(struct gf100_ram *ram)
 {
@@ -136,7 +152,8 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_ram_mr *mr = ram->base.mr;
 	struct nvkm_memx *memx = ram->memx;
-	u32 data;
+	bool r100750 = false;
+	u32 mask, data, diff;
 	u8 r100b0c;
 	int ret, i;
 
@@ -266,10 +283,26 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	gf100_ram_calc_timing(ram);
 
+	if (mask = 0, data = 0, v->ramcfg_10_02_20) {
+		data |= 0xf0000000 * !!c->bios.ramcfg_10_02_20;
+		mask |= 0xf0000000;
+	}
+	diff = memx_mask(memx, 0x10f604, mask, data, DIFF);
+	if (diff & 0xf0000000)
+		r100750 = true;
+
 	if (memx_mask(memx, 0x10f330, mr[1].mask, mr[1].data, DIFF))
 		memx_nsec(memx, 1000);
 	if (memx_mask(memx, 0x10f340, mr[5].mask, mr[5].data & ~0x004, DIFF))
 		memx_nsec(memx, 1000);
+
+	if (r100750) {
+		memx_mask(memx, 0x100750, 0x00000008, 0x00000008);
+		memx_wr32(memx, 0x100710, 0x00000000);
+		memx_wait(memx, 0x100710, 0x80000000, 0x80000000, 200000);
+	}
+
+	ram->base.func->calc_r61c140_100c00(&ram->base);
 
 	gf100_ram_calc_gddr5_r10f640(ram);
 
@@ -511,7 +544,15 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	memx_mask(memx, 0x10f300, 0x00000000, 0x00000000, FORCE);
 	memx_nsec(memx, 1000);
 
+	if (v->ramcfg_10_02_20) {
+		data = 0xf0000000 * !!c->bios.ramcfg_10_02_20;
+		mask = 0xf0000000;
+		memx_mask(memx, 0x10f604, mask, data);
+	}
+
 	memx_mask(memx, 0x10f808, 0x10000020, 0x00000000);
+
+	ram->base.func->calc_r61c140_100c00(&ram->base);
 
 	if (!c->bios.ramcfg_DLLoff) {
 		gf100_ram_calc_sddr3_dll_reset(memx);
@@ -1109,6 +1150,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->rammap_10_05_000001ff |= c->rammap_10_05_000001ff != 0;
 	v->rammap_10_0a |= c->rammap_10_0a != 0;
 	v->ramcfg_DLLoff |= c->ramcfg_DLLoff != 0;
+	v->ramcfg_10_02_20 |= c->ramcfg_10_02_20 != 0;
 done:
 	if (ret)
 		kfree(cfg);
@@ -1180,6 +1222,7 @@ gf100_ram = {
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
 	.init = gf100_ram_init,
 	.calc = gf100_ram_calc,
+	.calc_r61c140_100c00 = gf100_ram_calc_r61c140,
 	.prog = gf100_ram_prog,
 	.tidy = gf100_ram_tidy,
 };

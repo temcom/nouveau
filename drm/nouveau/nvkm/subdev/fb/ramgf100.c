@@ -333,13 +333,15 @@ gf100_ram_calc_sddr3_dll_reset(struct nvkm_memx *memx)
 static int
 gf100_ram_calc_sddr3(struct gf100_ram *ram)
 {
-	struct nvkm_memx *memx = ram->memx;
+	struct nvbios_ramcfg *v = &ram->base.diff;
 	struct nvkm_ram_data *c = ram->base.next;
+	struct nvkm_memx *memx = ram->memx;
 	unsigned locknsec = DIV_ROUND_UP(540000, c->freq) * 1000; /*XXX*/
 	unsigned lowspeed = c->freq <= 750000; /*XXX: where's this from? */
 	unsigned somefreq = 405000; /*XXX: where's this from? what is it? */
+	u32 mask, data;
 	u8 r100b0c;
-	int ret;
+	int ret, fbpa;
 
 	if ((ram->from == DIV && (ram->mode != DIV && ram->mode != PLL)) ||
 	    (ram->from == PLL && (ram->mode != DIV && ram->mode != PLL)) ||
@@ -411,8 +413,29 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	memx_mask(memx, 0x10f874, 0x04000000, lowspeed << 26);
 
 	gf100_ram_calc_sddr3_r132018(ram, lowspeed);
-	memx_wr32(memx, 0x10f660, 0x00001010);
+
+	if (v->rammap_10_04_08) {
+		if (c->bios.rammap_10_04_08) {
+			memx_wr32(memx, 0x10f660, 0x00001010);
+		}
+
+		data = 0x00002000 * !c->bios.rammap_10_04_08;
+		mask = 0x00003000;
+		memx_mask(memx, 0x10f910, mask, data);
+		memx_mask(memx, 0x10f914, mask, data);
+	}
+
 	memx_mask(memx, 0x10f824, 0x00006000, 0x00006000);
+
+	if (!v->rammap_10_04_08 || !c->bios.rammap_10_04_08) {
+		data = 0x22222222 * lowspeed;
+		mask = 0x22222222;
+		for_each_set_bit(fbpa, &ram->base.fbpam, ram->base.fbpan) {
+			memx_mask(memx, 0x110620 + (fbpa * 0x1000), mask, data);
+			memx_mask(memx, 0x110628 + (fbpa * 0x1000), mask, data);
+			memx_mask(memx, 0x110630 + (fbpa * 0x1000), mask, data);
+		}
+	}
 
 	if (ram->mode != DIV) {
 		gf100_ram_calc_sddr3_r10f830(ram, c->freq < somefreq);
@@ -958,8 +981,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	list_add_tail(&cfg->head, &ram->base.cfg);
 	ret = 0;
 
-	(void)v;
-	(void)c;
+	v->rammap_10_04_08 |= c->rammap_10_04_08 != 0;
 done:
 	if (ret)
 		kfree(cfg);

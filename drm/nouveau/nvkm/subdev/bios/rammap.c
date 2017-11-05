@@ -112,6 +112,7 @@ nvbios_rammapEp(struct nvkm_bios *bios, int idx,
 		p->rammap_10_05_02000000 = (temp & 0x02000000) >> 25;
 		p->rammap_10_05_04000000 = (temp & 0x04000000) >> 26;
 		p->rammap_10_05_08000000 = (temp & 0x08000000) >> 27;
+		p->rammap_10_0a = nvbios_rd16(bios, data + 0x0a);
 		break;
 	case 0x11:
 		p->rammap_min      =  nvbios_rd16(bios, data + 0x00);

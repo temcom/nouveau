@@ -212,8 +212,16 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	r100b0c = gf100_ram_calc_fb_access(ram, false, 0x12);
 
 	memx_mask(memx, 0x10f200, 0x00000800, 0x00000000);
-	if (ram->mode == DIV)
-		memx_mask(memx, 0x10f824, 0x00000000, 0x00000000, FORCE);
+
+	if (v->ramcfg_10_02_10 && !c->bios.ramcfg_10_02_10) {
+		memx_mask(memx, 0x10f808, 0x40000000, 0x40000000, FORCE);
+		if (ram->mode == DIV)
+			memx_mask(memx, 0x10f824, 0x00000180, 0x00000000);
+	} else
+	if (v->ramcfg_10_02_10) {
+		memx_mask(memx, 0x10f824, 0x00000600, 0x00000000, FORCE);
+	}
+
 	memx_wr32(memx, 0x10f210, 0x00000000);
 	memx_nsec(memx, 1000);
 	if (ram->from != DIV)
@@ -224,8 +232,13 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	memx_wr32(memx, 0x10f090, 0xc000007f);
 	memx_nsec(memx, 1000);
 
-	if (ram->mode != DIV)
+	if (ram->mode == DIV) {
+		data = 0x00020000 * !c->bios.ramcfg_10_02_10;
+		mask = 0x00030000;
+		memx_mask(memx, 0x1373ec, mask, data);
+	} else {
 		memx_mask(memx, 0x10f824, 0xffffffff, 0x00007fd4);
+	}
 
 	if (ram->from != DIV) {
 		memx_mask(memx, 0x10f808, 0x00080000, 0x00000000);
@@ -446,11 +459,17 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	if (ram->from != DIV || ram->mode != DIV)
 		gf100_ram_calc_sddr3_r137370(ram, true);
 
-	mask = 0x00000000;
-	data = 0x00000000;
-	if (rammap_10_04_01)
-		mask |= 0x00006000;
-	memx_mask(memx, 0x10f824, mask, data);
+	if (v->ramcfg_10_02_10) {
+		mask = 0x00006000 * !!rammap_10_04_01;
+		data = 0x00000000;
+		if (mask = 0, data = 0, !c->bios.ramcfg_10_02_10) {
+			memx_mask(memx, 0x10f808, 0x40000000, 0x40000000);
+			mask |= 0x00000180;
+		} else {
+			mask |= 0x00000600;
+		}
+		memx_mask(memx, 0x10f824, mask, data);
+	}
 
 	/* Wait for a vblank window, and disable FB access. */
 	r100b0c = gf100_ram_calc_fb_access(ram, false, 0x12);
@@ -464,6 +483,12 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f304, 0x00000001, 0x00000001);
 		memx_nsec(memx, 1000);
 	}
+
+	if (v->ramcfg_10_02_10 && !c->bios.ramcfg_10_02_10) {
+		memx_mask(memx, 0x10f808, 0x04000000, 0x04000000);
+		memx_mask(memx, 0x1373ec, 0x00030000, 0x00020000);
+	}
+
 	memx_wr32(memx, 0x10f314, 0x00000001);
 
 	memx_wr32(memx, 0x10f210, 0x00000000);
@@ -550,7 +575,20 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f604, mask, data);
 	}
 
-	memx_mask(memx, 0x10f808, 0x10000020, 0x00000000);
+	mask = 0x14000020;
+	data = 0x00000000;
+	if (v->ramcfg_10_02_10) {
+		data |= 0x04000000 * !c->bios.ramcfg_10_02_10;
+		data |= 0x08000004 *  c->bios.ramcfg_10_02_10;
+		mask |= 0x08000004;
+	}
+	memx_mask(memx, 0x10f808, mask, data);
+
+	if (v->ramcfg_10_02_10) {
+		data = 0x00020000 * !c->bios.ramcfg_10_02_10;
+		mask = 0x00030000;
+		memx_mask(memx, 0x1373ec, mask, data);
+	}
 
 	ram->base.func->calc_r61c140_100c00(&ram->base);
 
@@ -854,8 +892,14 @@ gf100_ram_prog(struct nvkm_ram *base)
 		}
 	}
 
-	nvkm_mask(device, 0x10f824, 0x00000000, 0x00000000);
-	nvkm_mask(device, 0x10f808, 0x00000000, 0x00000000);
+	if (v->ramcfg_10_02_10) {
+		if (c->bios.ramcfg_10_02_10) {
+			nvkm_mask(device, 0x10f824, 0x00000180, 0x00000180);
+			nvkm_mask(device, 0x10f808, 0x40000000, 0x00000000);
+		} else {
+			nvkm_mask(device, 0x10f824, 0x00000600, 0x00000600);
+		}
+	}
 
 	if (ram->mode == DIV) {
 		if (ram->base.type != NVKM_RAM_TYPE_GDDR5) {
@@ -1151,6 +1195,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->rammap_10_0a |= c->rammap_10_0a != 0;
 	v->ramcfg_DLLoff |= c->ramcfg_DLLoff != 0;
 	v->ramcfg_10_02_20 |= c->ramcfg_10_02_20 != 0;
+	v->ramcfg_10_02_10 |= c->ramcfg_10_02_10 != 0;
 done:
 	if (ret)
 		kfree(cfg);

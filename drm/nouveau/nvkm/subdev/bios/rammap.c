@@ -99,6 +99,7 @@ nvbios_rammapEp(struct nvkm_bios *bios, int idx,
 	case 0x10:
 		p->rammap_min      =  nvbios_rd16(bios, data + 0x00);
 		p->rammap_max      =  nvbios_rd16(bios, data + 0x02);
+		p->rammap_10_04_01 = (nvbios_rd08(bios, data + 0x04) & 0x01);
 		p->rammap_10_04_02 = (nvbios_rd08(bios, data + 0x04) & 0x02) >> 1;
 		p->rammap_10_04_08 = (nvbios_rd08(bios, data + 0x04) & 0x08) >> 3;
 		p->rammap_10_04_40 = (nvbios_rd08(bios, data + 0x04) & 0x40) >> 6;

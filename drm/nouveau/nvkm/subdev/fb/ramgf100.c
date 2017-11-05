@@ -315,10 +315,15 @@ gf100_ram_calc_sddr3_r137370(struct gf100_ram *ram, bool enable)
 }
 
 static void
-gf100_ram_calc_sddr3_r132018(struct gf100_ram *ram, unsigned lowspeed)
+gf100_ram_calc_sddr3_r132018(struct gf100_ram *ram, unsigned lowspeed,
+			     unsigned rammap_10_04_01, bool mask14)
 {
 	u32 data = 0x00001000 | (lowspeed << 28) | ((ram->mode == DIV) << 15);
 	u32 mask = 0x10009000;
+	if (rammap_10_04_01 || mask14) {
+		data |= 0x00004000 * rammap_10_04_01;
+		mask |= 0x00004000;
+	}
 	memx_mask(ram->memx, 0x132018, mask, data);
 }
 
@@ -342,6 +347,7 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	unsigned locknsec = DIV_ROUND_UP(540000, c->freq) * 1000; /*XXX*/
 	unsigned lowspeed = c->freq <= 750000; /*XXX: where's this from? */
 	unsigned somefreq = 405000; /*XXX: where's this from? what is it? */
+	unsigned rammap_10_04_01 = !v->rammap_10_04_01 || c->bios.rammap_10_04_01;
 	unsigned r10f200_11;
 	u32 mask, data;
 	u8 r100b0c;
@@ -376,11 +382,17 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_wr32(memx, 0x132004, ram->mpll);
 		memx_mask(memx, 0x132000, 0x00000001, 0x00000001);
 		memx_wait(memx, 0x137390, 0x00000002, 0x00000002, 64000);
-		gf100_ram_calc_sddr3_r132018(ram, lowspeed);
+		gf100_ram_calc_sddr3_r132018(ram, lowspeed, rammap_10_04_01, false);
 	}
 
 	if (ram->from != DIV || ram->mode != DIV)
 		gf100_ram_calc_sddr3_r137370(ram, true);
+
+	mask = 0x00000000;
+	data = 0x00000000;
+	if (rammap_10_04_01)
+		mask |= 0x00006000;
+	memx_mask(memx, 0x10f824, mask, data);
 
 	/* Wait for a vblank window, and disable FB access. */
 	r100b0c = gf100_ram_calc_fb_access(ram, false, 0x12);
@@ -419,7 +431,12 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	memx_mask(memx, 0x10f874, 0x04000000, lowspeed << 26);
 
-	gf100_ram_calc_sddr3_r132018(ram, lowspeed);
+	if (rammap_10_04_01)
+		memx_mask(memx, 0x10f824, 0x00006000, 0x00000000);
+
+	gf100_ram_calc_sddr3_r132018(ram, lowspeed, rammap_10_04_01, true);
+	if (rammap_10_04_01)
+		memx_nsec(memx, 20000);
 
 	if (v->rammap_10_04_08) {
 		if (c->bios.rammap_10_04_08) {
@@ -432,7 +449,8 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f914, mask, data);
 	}
 
-	memx_mask(memx, 0x10f824, 0x00006000, 0x00006000);
+	if (!rammap_10_04_01)
+		memx_mask(memx, 0x10f824, 0x00006000, 0x00006000);
 
 	if (!v->rammap_10_04_08 || !c->bios.rammap_10_04_08) {
 		data = 0x22222222 * lowspeed;
@@ -693,6 +711,8 @@ gf100_ram_prog(struct nvkm_ram *base)
 {
 	struct gf100_ram *ram = gf100_ram(base);
 	struct nvkm_device *device = ram->base.fb->subdev.device;
+	struct nvbios_ramcfg *v = &ram->base.diff;
+	struct nvkm_ram_data *c = ram->base.next;
 
 	if (!nvkm_boolopt(device->cfgopt, "NvMemExec", true))
 		return 0;
@@ -702,8 +722,10 @@ gf100_ram_prog(struct nvkm_ram *base)
 	nvkm_memx_fini(&ram->memx, true);
 
 	if (ram->base.type != NVKM_RAM_TYPE_GDDR5) {
-		nvkm_mask(device, 0x132018, 0x00000000, 0x00000000);
-		nvkm_mask(device, 0x10f824, 0x00000000, 0x00000000);
+		if (v->rammap_10_04_01 && !c->bios.rammap_10_04_01) {
+			nvkm_mask(device, 0x132018, 0x00004000, 0x00000000);
+			nvkm_mask(device, 0x10f824, 0x00002000, 0x00002000);
+		}
 	}
 
 	nvkm_mask(device, 0x10f824, 0x00000000, 0x00000000);
@@ -991,6 +1013,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 
 	v->rammap_10_04_08 |= c->rammap_10_04_08 != 0;
 	v->rammap_10_04_02 |= c->rammap_10_04_02 != 0;
+	v->rammap_10_04_01 |= c->rammap_10_04_01 != 0;
 done:
 	if (ret)
 		kfree(cfg);

@@ -13,6 +13,7 @@ struct nvbios_ramcfg {
 			unsigned rammap_00_17_02:1;
 		};
 		struct {
+			unsigned rammap_10_04_01:1;
 			unsigned rammap_10_04_02:1;
 			unsigned rammap_10_04_08:1;
 			unsigned rammap_10_04_40:1;

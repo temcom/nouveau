@@ -104,6 +104,7 @@ nvbios_rammapEp(struct nvkm_bios *bios, int idx,
 		p->rammap_10_04_08 = (nvbios_rd08(bios, data + 0x04) & 0x08) >> 3;
 		p->rammap_10_04_40 = (nvbios_rd08(bios, data + 0x04) & 0x40) >> 6;
 		temp = nvbios_rd32(bios, data + 0x05);
+		p->rammap_10_05_00080000 = (temp & 0x00080000) >> 19;
 		p->rammap_10_05_01f00000 = (temp & 0x01f00000) >> 20;
 		p->rammap_10_05_02000000 = (temp & 0x02000000) >> 25;
 		p->rammap_10_05_04000000 = (temp & 0x04000000) >> 26;

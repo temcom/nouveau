@@ -701,6 +701,11 @@ gf100_ram_prog_10f4xx(struct gf100_ram *ram, u32 khz)
 
 	nvkm_mask(device, 0x10f468, mask, data);
 	nvkm_mask(device, 0x10f420, mask, data);
+
+	if (mask = 0, data = 0, v->rammap_10_05_00080000) {
+		data |= c.bios.rammap_10_05_00080000;
+		mask |= 0x00000001;
+	}
 	nvkm_mask(device, 0x10f430, mask, data);
 
 	if (mask = 0, data = 0, v->rammap_10_05_01f00000) {
@@ -1038,6 +1043,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->rammap_10_05_04000000 |= c->rammap_10_05_04000000 != 0;
 	v->rammap_10_05_02000000 |= c->rammap_10_05_02000000 != 0;
 	v->rammap_10_05_01f00000 |= c->rammap_10_05_01f00000 != 0;
+	v->rammap_10_05_00080000 |= c->rammap_10_05_00080000 != 0;
 done:
 	if (ret)
 		kfree(cfg);

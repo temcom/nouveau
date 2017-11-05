@@ -132,6 +132,7 @@ static int
 gf100_ram_calc_gddr5(struct gf100_ram *ram)
 {
 	struct nvkm_device *device = ram->base.fb->subdev.device;
+	struct nvbios_ramcfg *v = &ram->base.diff;
 	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_ram_mr *mr = ram->base.mr;
 	struct nvkm_memx *memx = ram->memx;
@@ -294,7 +295,9 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		gf100_ram_calc_train(ram, 0xffffffff, 0x010c1001);
 	}
 
-	memx_mask(memx, 0x10f200, 0x00000800, 0x00000800);
+	if (v->rammap_10_04_02 && c->bios.rammap_10_04_02)
+		memx_mask(memx, 0x10f200, 0x00000800, 0x00000800);
+
 	return 0;
 }
 
@@ -339,6 +342,7 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	unsigned locknsec = DIV_ROUND_UP(540000, c->freq) * 1000; /*XXX*/
 	unsigned lowspeed = c->freq <= 750000; /*XXX: where's this from? */
 	unsigned somefreq = 405000; /*XXX: where's this from? what is it? */
+	unsigned r10f200_11;
 	u32 mask, data;
 	u8 r100b0c;
 	int ret, fbpa;
@@ -381,7 +385,10 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	/* Wait for a vblank window, and disable FB access. */
 	r100b0c = gf100_ram_calc_fb_access(ram, false, 0x12);
 
-	memx_mask(memx, 0x10f200, 0x00000800, 0x00000000);
+	r10f200_11 = memx_mask(memx, 0x10f200, 0x00000800, 0x00000000, DIFF);
+	if (v->rammap_10_04_02)
+		r10f200_11 = c->bios.rammap_10_04_02;
+
 	memx_wr32(memx, 0x10f314, 0x00000001);
 	memx_wr32(memx, 0x10f210, 0x00000000);
 	memx_wr32(memx, 0x10f310, 0x00000001);
@@ -458,7 +465,8 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	/* Re-enable FB access. */
 	gf100_ram_calc_fb_access(ram, true, r100b0c);
 
-	memx_mask(memx, 0x10f200, 0x00000800, 0x00000800);
+	if (r10f200_11)
+		memx_mask(memx, 0x10f200, 0x00000800, 0x00000800);
 	return 0;
 }
 
@@ -982,6 +990,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	ret = 0;
 
 	v->rammap_10_04_08 |= c->rammap_10_04_08 != 0;
+	v->rammap_10_04_02 |= c->rammap_10_04_02 != 0;
 done:
 	if (ret)
 		kfree(cfg);

@@ -266,6 +266,8 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	gf100_ram_calc_timing(ram);
 
+	if (memx_mask(memx, 0x10f330, mr[1].mask, mr[1].data, DIFF))
+		memx_nsec(memx, 1000);
 	if (memx_mask(memx, 0x10f340, mr[5].mask, mr[5].data & ~0x004, DIFF))
 		memx_nsec(memx, 1000);
 
@@ -365,6 +367,7 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 {
 	struct nvbios_ramcfg *v = &ram->base.diff;
 	struct nvkm_ram_data *c = ram->base.next;
+	struct nvkm_ram_mr *mr = ram->base.mr;
 	struct nvkm_memx *memx = ram->memx;
 	unsigned locknsec = DIV_ROUND_UP(540000, c->freq) * 1000; /*XXX*/
 	unsigned lowspeed = c->freq <= 750000; /*XXX: where's this from? */
@@ -423,7 +426,13 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	if (v->rammap_10_04_02)
 		r10f200_11 = c->bios.rammap_10_04_02;
 
+	if (!(memx_rd32(memx, 0x10f304) & 0x001) && (mr[1].data & 0x001)) {
+		memx_wr32(memx, 0x10f314, 0x00000001);
+		memx_mask(memx, 0x10f304, 0x00000001, 0x00000001);
+		memx_nsec(memx, 1000);
+	}
 	memx_wr32(memx, 0x10f314, 0x00000001);
+
 	memx_wr32(memx, 0x10f210, 0x00000000);
 	memx_wr32(memx, 0x10f310, 0x00000001);
 	memx_wr32(memx, 0x10f310, 0x00000001);
@@ -493,12 +502,24 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	memx_wr32(memx, 0x10f090, 0x4000007f);
 	memx_wr32(memx, 0x10f210, 0x80000000);
 	memx_nsec(memx, locknsec);
+
+	if (memx_mask(memx, 0x10f304, mr[1].mask, mr[1].data, DIFF))
+		memx_nsec(memx, 1000);
+
 	gf100_ram_calc_sddr3_dll_reset(memx);
+
 	memx_mask(memx, 0x10f300, 0x00000000, 0x00000000, FORCE);
 	memx_nsec(memx, 1000);
+
 	memx_mask(memx, 0x10f808, 0x10000020, 0x00000000);
-	gf100_ram_calc_sddr3_dll_reset(memx);
-	memx_nsec(memx, locknsec);
+
+	if (!c->bios.ramcfg_DLLoff) {
+		gf100_ram_calc_sddr3_dll_reset(memx);
+		memx_nsec(memx, locknsec);
+	} else {
+		memx_nsec(memx, 5000);
+	}
+
 	memx_mask(memx, 0x10f830, 0x01000000, 0x01000000);
 	memx_mask(memx, 0x10f830, 0x01000000, 0x00000000);
 
@@ -1087,6 +1108,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->rammap_10_05_0003fe00 |= c->rammap_10_05_0003fe00 != 0;
 	v->rammap_10_05_000001ff |= c->rammap_10_05_000001ff != 0;
 	v->rammap_10_0a |= c->rammap_10_0a != 0;
+	v->ramcfg_DLLoff |= c->ramcfg_DLLoff != 0;
 done:
 	if (ret)
 		kfree(cfg);

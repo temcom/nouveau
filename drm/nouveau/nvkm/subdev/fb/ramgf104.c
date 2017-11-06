@@ -26,6 +26,26 @@
 #include <subdev/pmu.h>
 
 void
+gf104_ram_calc_r1373f8(struct nvkm_ram *base)
+{
+	struct gf100_ram *ram = gf100_ram(base);
+	struct nvbios_ramcfg *v = &ram->base.diff;
+	struct nvkm_ram_data *c = ram->base.next;
+	struct nvkm_memx *memx = ram->memx;
+	u32 mask = 0, data = 0;
+	int fbpa;
+
+	if (v->ramcfg_10_02_01) {
+		for_each_set_bit(fbpa, &ram->base.fbpam, ram->base.fbpan) {
+			if (c->bios.ramcfg_10_02_01)
+				data |= BIT(fbpa * 2);
+			mask |= BIT(fbpa * 2);
+		}
+		memx_mask(memx, 0x1373f8, mask, data);
+	}
+}
+
+void
 gf104_ram_calc_r100c00(struct nvkm_ram *base)
 {
 	struct gf100_ram *ram = gf100_ram(base);
@@ -37,6 +57,10 @@ gf104_ram_calc_r100c00(struct nvkm_ram *base)
 	if (v->ramcfg_10_02_20) {
 		data = 0x04000000 * !!c->bios.ramcfg_10_02_20;
 		mask = 0x04000000;
+	}
+	if (v->ramcfg_10_02_01) {
+		data |= 0x08000000 * !!c->bios.ramcfg_10_02_01;
+		mask |= 0x08000000;
 	}
 	memx_mask(memx, 0x100c00, mask, data);
 }
@@ -51,6 +75,7 @@ gf104_ram = {
 	.init = gf100_ram_init,
 	.calc = gf100_ram_calc,
 	.calc_r61c140_100c00 = gf104_ram_calc_r100c00,
+	.calc_r1373f8 = gf104_ram_calc_r1373f8,
 	.prog = gf100_ram_prog,
 	.tidy = gf100_ram_tidy,
 };

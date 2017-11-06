@@ -39,6 +39,7 @@ gf108_ram = {
 	.init = gf100_ram_init,
 	.calc = gf100_ram_calc,
 	.calc_r61c140_100c00 = gf104_ram_calc_r100c00,
+	.calc_r1373f8 = gf104_ram_calc_r1373f8,
 	.prog = gf100_ram_prog,
 	.tidy = gf100_ram_tidy,
 };

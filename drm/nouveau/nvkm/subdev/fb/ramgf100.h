@@ -37,4 +37,5 @@ int gf100_ram_prog(struct nvkm_ram *);
 void gf100_ram_tidy(struct nvkm_ram *);
 
 void gf104_ram_calc_r100c00(struct nvkm_ram *);
+void gf104_ram_calc_r1373f8(struct nvkm_ram *);
 #endif

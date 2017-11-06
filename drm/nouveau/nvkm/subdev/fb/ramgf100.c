@@ -96,6 +96,9 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 		(c->bios.timing_10_WTR & 0x7f) << 8;
 	mask |= 0x007f7f00;
 	memx_mask(memx, 0x10f298, mask, data);
+
+	memx_mask(memx, 0x10f2a0, 0x001f8000,
+			(c->bios.timing_10_RRD & 0x3f) << 15);
 }
 
 static void

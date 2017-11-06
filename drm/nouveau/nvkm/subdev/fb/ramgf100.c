@@ -68,7 +68,8 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 	struct nvkm_memx *memx = ram->memx;
 	u32 mask, data;
 
-	data = mask = 0;
+	data = (c->bios.timing_10_RFC & 0xff) << 8;
+	mask = 0x0000ff00;
 	if (v->timing_10_RC) {
 		data |= c->bios.timing_10_RC;
 		mask |= 0x000000ff;
@@ -612,6 +613,11 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f808, 0x04000000, 0x04000000);
 		memx_mask(memx, 0x1373ec, 0x00030000, 0x00020000);
 	}
+
+	data = memx_rd32(memx, 0x10f290) & 0x0000ff00;
+	data = max(data, c->bios.timing_10_RFC << 8);
+	mask = 0x0000ff00;
+	memx_mask(memx, 0x10f290, mask, data);
 
 	memx_wr32(memx, 0x10f314, 0x00000001);
 

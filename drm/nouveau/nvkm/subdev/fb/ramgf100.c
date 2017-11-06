@@ -306,9 +306,19 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		data |= 0xf0000000 * !!c->bios.ramcfg_10_02_20;
 		mask |= 0xf0000000;
 	}
+	if (v->ramcfg_10_02_04) {
+		data |= 0x01000000 * !c->bios.ramcfg_10_02_04;
+		mask |= 0x01000000;
+	}
 	diff = memx_mask(memx, 0x10f604, mask, data, DIFF);
 	if (diff & 0xf0000000)
 		r100750 = true;
+
+	if (v->ramcfg_10_02_04) {
+		data = 0x32a00000 * !c->bios.ramcfg_10_02_04;
+		mask = 0x32a00000;
+		memx_mask(memx, 0x10f808, mask, data);
+	}
 
 	if (memx_mask(memx, 0x10f330, mr[1].mask, mr[1].data, DIFF))
 		memx_nsec(memx, 1000);
@@ -581,11 +591,15 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f200, mask, data);
 	}
 
-	if (v->ramcfg_10_02_20) {
-		data = 0xf0000000 * !!c->bios.ramcfg_10_02_20;
-		mask = 0xf0000000;
-		memx_mask(memx, 0x10f604, mask, data);
+	if (mask = 0, data = 0, v->ramcfg_10_02_20) {
+		data |= 0xf0000000 * !!c->bios.ramcfg_10_02_20;
+		mask |= 0xf0000000;
 	}
+	if (v->ramcfg_10_02_04) {
+		data |= 0x01000000 * !c->bios.ramcfg_10_02_04;
+		mask |= 0x01000000;
+	}
+	memx_mask(memx, 0x10f604, mask, data);
 
 	mask = 0x14000020;
 	data = 0x00000000;
@@ -597,6 +611,10 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	if (v->ramcfg_10_02_08) {
 		data |= 0x00100000 * !c->bios.ramcfg_10_02_08;
 		mask |= 0x00100000;
+	}
+	if (v->ramcfg_10_02_04) {
+		data |= 0x12800000 * !c->bios.ramcfg_10_02_04;
+		mask |= 0x12800000;
 	}
 	memx_mask(memx, 0x10f808, mask, data);
 
@@ -1213,6 +1231,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->ramcfg_10_02_20 |= c->ramcfg_10_02_20 != 0;
 	v->ramcfg_10_02_10 |= c->ramcfg_10_02_10 != 0;
 	v->ramcfg_10_02_08 |= c->ramcfg_10_02_08 != 0;
+	v->ramcfg_10_02_04 |= c->ramcfg_10_02_04 != 0;
 done:
 	if (ret)
 		kfree(cfg);

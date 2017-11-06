@@ -239,6 +239,7 @@ nvbios_rammapSp(struct nvkm_bios *bios, u32 data,
 		p->ramcfg_10_0a    = (nvbios_rd08(bios, data + 0x0a) & 0xff) >> 0;
 		p->ramcfg_10_0b_3f = (nvbios_rd08(bios, data + 0x0b) & 0x3f) >> 0;
 		p->ramcfg_10_0c    = (nvbios_rd08(bios, data + 0x0c) & 0xff) >> 0;
+		p->ramcfg_10_0d_0f = (nvbios_rd08(bios, data + 0x0d) & 0x0f) >> 0;
 		break;
 	case 0x11:
 		p->ramcfg_timing   =  nvbios_rd08(bios, data + 0x00);

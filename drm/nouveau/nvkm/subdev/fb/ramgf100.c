@@ -374,6 +374,9 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	if (ram->base.func->calc_r1373f8)
 		ram->base.func->calc_r1373f8(&ram->base);
 
+	if (v->ramcfg_10_0d_0f)
+		memx_wr32(memx, 0x10f870, 0x11111111 * c->bios.ramcfg_10_0d_0f);
+
 	if (v->ramcfg_10_03_0f) {
 		data = 0x11111111 * c->bios.ramcfg_10_03_0f;
 		mask = 0xffffffff;
@@ -757,6 +760,9 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	if (ram->base.func->calc_r1373f8)
 		ram->base.func->calc_r1373f8(&ram->base);
+
+	if (v->ramcfg_10_0d_0f)
+		memx_wr32(memx, 0x10f870, 0x11111111 * c->bios.ramcfg_10_0d_0f);
 
 	if (v->ramcfg_10_03_0f) {
 		data = 0x11111111 * c->bios.ramcfg_10_03_0f;
@@ -1388,6 +1394,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->ramcfg_10_04_03 |= c->ramcfg_10_04_03 != 0;
 	v->ramcfg_10_09_f0 |= c->ramcfg_10_09_f0 != 0;
 	v->ramcfg_10_0c |= c->ramcfg_10_0c != 0;
+	v->ramcfg_10_0d_0f |= c->ramcfg_10_0d_0f != 0;
 done:
 	if (ret)
 		kfree(cfg);

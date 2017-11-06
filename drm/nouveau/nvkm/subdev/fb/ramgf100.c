@@ -78,13 +78,13 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 	}
 	memx_mask(memx, 0x10f290, mask, data);
 
-	data = 0;
+	data = (c->bios.timing_10_RCDRD & 0x3f) << 14;
 	if (ram->base.type != NVKM_RAM_TYPE_GDDR5 &&
 	    v->ramcfg_DLLoff && c->bios.ramcfg_DLLoff)
 		data |= (c->bios.timing_10_CL & 0x7f) - 1;
 	else
 		data |= (c->bios.timing_10_CL & 0x7f);
-	mask = 0x0000007f;
+	mask = 0x000fc07f;
 	memx_mask(memx, 0x10f294, mask, data);
 
 	if (mask = 0, data = 0, ram->base.type == NVKM_RAM_TYPE_GDDR5) {

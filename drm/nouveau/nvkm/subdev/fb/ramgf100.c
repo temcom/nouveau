@@ -86,6 +86,10 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 	else
 		data |= (c->bios.timing_10_CL & 0x7f);
 	mask = 0x03ffc07f;
+	if (v->timing_10_CWL) {
+		data |= (c->bios.timing_10_CWL & 0x7f) << 7;
+		mask |= 0x00003f80;
+	}
 	memx_mask(memx, 0x10f294, mask, data);
 
 	if (mask = 0, data = 0, ram->base.type == NVKM_RAM_TYPE_GDDR5) {
@@ -735,6 +739,8 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	gf100_ram_calc_sddr3_dll_reset(memx);
 
+	if (memx_mask(memx, 0x10f320, mr[2].mask, mr[2].data, DIFF))
+		memx_nsec(memx, 1000);
 	memx_mask(memx, 0x10f300, mr[0].mask, mr[0].data, FORCE);
 	memx_nsec(memx, 1000);
 
@@ -1439,6 +1445,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->timing_10_RC |= c->timing_10_RC != 0;
 	v->timing_10_0e_30 |= c->timing_10_0e_30 != 0;
 	v->timing_10_ODT |= c->timing_10_ODT != 0;
+	v->timing_10_CWL |= c->timing_10_CWL != 0;
 done:
 	if (ret)
 		kfree(cfg);

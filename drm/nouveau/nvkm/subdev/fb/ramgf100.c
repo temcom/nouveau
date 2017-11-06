@@ -71,8 +71,9 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 		data |= 0x00000011 * (ram->mode == DIV);
 		mask |= 0x000000ff;
 	}
-	data |= (c->bios.timing_10_WR  & 0x7f) << 16;
-	mask |= 0x007f0000;
+	data |= (c->bios.timing_10_WR  & 0x7f) << 16 |
+		(c->bios.timing_10_WTR & 0x7f) << 8;
+	mask |= 0x007f7f00;
 	memx_mask(memx, 0x10f298, mask, data);
 }
 

@@ -638,9 +638,10 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	if (v->rammap_10_04_08) {
 		if (c->bios.rammap_10_04_08) {
-			data = c->bios.ramcfg_10_07_f0 << 4 |
+			data = c->bios.ramcfg_10_08    << 8 |
+			       c->bios.ramcfg_10_07_f0 << 4 |
 			       c->bios.ramcfg_10_07_0f;
-			mask = 0x000000ff;
+			mask = 0x0000ffff;
 			memx_mask(memx, 0x10f660, mask, data, FORCE);
 
 			if (mask = 0, data = 0, v->ramcfg_10_03_0f) {

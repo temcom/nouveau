@@ -946,7 +946,7 @@ gt215_ram_calc(struct nvkm_ram *base, u8 flags, u32 freq)
 		}
 	}
 
-	unk714 |= (next->bios.ramcfg_10_04_01) << 8;
+	unk714 |= (next->bios.ramcfg_10_04_03 & 0x01) << 8;
 
 	if (next->bios.ramcfg_10_02_20)
 		unk714 |= 0xf0000000;

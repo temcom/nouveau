@@ -62,6 +62,10 @@ gf104_ram_calc_r100c00(struct nvkm_ram *base)
 		data |= 0x08000000 * !!c->bios.ramcfg_10_02_01;
 		mask |= 0x08000000;
 	}
+	if (v->ramcfg_10_04_03) {
+		data |= c->bios.ramcfg_10_04_03 << 24;
+		mask |= 0x03000000;
+	}
 	memx_mask(memx, 0x100c00, mask, data);
 }
 

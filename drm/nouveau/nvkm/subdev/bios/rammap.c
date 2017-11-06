@@ -222,7 +222,7 @@ nvbios_rammapSp(struct nvkm_bios *bios, u32 data,
 		p->ramcfg_10_03_0f = (nvbios_rd08(bios, data + 0x03) & 0x0f) >> 0;
 		p->ramcfg_10_03_20 = (nvbios_rd08(bios, data + 0x03) & 0x20) >> 5;
 		p->ramcfg_10_03_40 = (nvbios_rd08(bios, data + 0x03) & 0x40) >> 6;
-		p->ramcfg_10_04_01 = (nvbios_rd08(bios, data + 0x04) & 0x01) >> 0;
+		p->ramcfg_10_04_03 = (nvbios_rd08(bios, data + 0x04) & 0x03) >> 0;
 		p->ramcfg_10_04_08 = (nvbios_rd08(bios, data + 0x04) & 0x08) >> 3;
 		p->ramcfg_10_04_10 = (nvbios_rd08(bios, data + 0x04) & 0x10) >> 4;
 		p->ramcfg_10_04_20 = (nvbios_rd08(bios, data + 0x04) & 0x20) >> 5;

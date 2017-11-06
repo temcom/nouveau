@@ -6,6 +6,7 @@ struct nvbios_ramcfg {
 	unsigned rammap_hdr;
 	unsigned rammap_min;
 	unsigned rammap_max;
+	unsigned rammap_fbvddq_usec;
 	union {
 		struct {
 			unsigned rammap_00_16_20:1;
@@ -82,6 +83,7 @@ struct nvbios_ramcfg {
 			unsigned ramcfg_10_03_20:1;
 			unsigned ramcfg_10_03_40:1;
 			unsigned ramcfg_10_04_01:1;
+			unsigned ramcfg_10_04_08:1;
 			unsigned ramcfg_10_04_10:1;
 			unsigned ramcfg_10_04_20:1;
 			unsigned ramcfg_10_05_0f:4;

@@ -159,7 +159,7 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	struct nvkm_ram_mr *mr = ram->base.mr;
 	struct nvkm_memx *memx = ram->memx;
 	bool r100750 = false;
-	u32 mask, data, diff;
+	u32 mask, data, diff, nsec = 0;
 	u8 r100b0c;
 	int ret, i;
 
@@ -244,6 +244,17 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	memx_wr32(memx, 0x10f090, 0xc000007f);
 	memx_nsec(memx, 1000);
 
+	if (v->ramcfg_10_04_08 && c->bios.ramcfg_10_04_08 ==
+	    nvkm_gpio_get(gpio, 0, 0x18, DCB_GPIO_UNUSED)) {
+		nvkm_gpio_set(gpio, 0, 0x18, DCB_GPIO_UNUSED,
+			      !c->bios.ramcfg_10_04_08,
+			      &memx->sink);
+		if (c->bios.rammap_fbvddq_usec)
+			nsec += c->bios.rammap_fbvddq_usec * 1000;
+		else
+			nsec += 64000;
+	}
+
 	if (ram->mode == DIV) {
 		data = 0x00020000 * !c->bios.ramcfg_10_02_10;
 		mask = 0x00030000;
@@ -275,6 +286,9 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f824, 0xfffff9ff, 0x00007877);
 		memx_mask(memx, 0x132000, 0x00000100, 0x00000000);
 	}
+
+	if (nsec)
+		memx_nsec(memx, nsec);
 
 	if (ram->mode != DIV) {
 		memx_mask(memx, 0x10f800, 0x000000ff, 0x00000000, FORCE);
@@ -469,6 +483,7 @@ gf100_ram_calc_sddr3_dll_reset(struct nvkm_memx *memx)
 static int
 gf100_ram_calc_sddr3(struct gf100_ram *ram)
 {
+	struct nvkm_gpio *gpio = ram->base.fb->subdev.device->gpio;
 	struct nvbios_ramcfg *v = &ram->base.diff;
 	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_ram_mr *mr = ram->base.mr;
@@ -478,7 +493,7 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	unsigned somefreq = 405000; /*XXX: where's this from? what is it? */
 	unsigned rammap_10_04_01 = !v->rammap_10_04_01 || c->bios.rammap_10_04_01;
 	unsigned r10f200_11;
-	u32 mask, data;
+	u32 mask, data, nsec;
 	u8 r100b0c;
 	int ret, fbpa;
 
@@ -563,6 +578,18 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 		gf100_ram_calc_sddr3_r137370(ram, false);
 		memx_mask(memx, 0x132018, 0x00004000, 0x00000000);
 		memx_mask(memx, 0x132000, 0x00000001, 0x00000000);
+	}
+
+	if (v->ramcfg_10_04_08 && c->bios.ramcfg_10_04_08 ==
+	    nvkm_gpio_get(gpio, 0, 0x18, DCB_GPIO_UNUSED)) {
+		nvkm_gpio_set(gpio, 0, 0x18, DCB_GPIO_UNUSED,
+			      !c->bios.ramcfg_10_04_08,
+			      &memx->sink);
+		/*XXX: later! */
+		nsec = c->bios.rammap_fbvddq_usec * 1000;
+		if (!nsec)
+			nsec = 64000;
+		memx_nsec(memx, nsec);
 	}
 
 	if (ram->from != DIV && ram->mode != DIV) {
@@ -1244,13 +1271,18 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	struct nvkm_bios *bios = ram->base.fb->subdev.device->bios;
 	struct nvkm_ram_data *cfg;
 	struct nvbios_ramcfg *v = &ram->base.diff;
-	struct nvbios_ramcfg *c;
+	struct nvbios_ramcfg *c, *p;
 	u8  ver, hdr, cnt, len;
 	u32 data;
 	int ret;
 
 	if (!(cfg = kmalloc(sizeof(*cfg), GFP_KERNEL)))
 		return -ENOMEM;
+
+	if (!list_empty(&ram->base.cfg))
+		p = &list_last_entry(&ram->base.cfg, typeof(*cfg), head)->bios;
+	else
+		p = &cfg->bios;
 	c = &cfg->bios;
 
 	/* memory config data for a range of target frequencies */
@@ -1308,6 +1340,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->ramcfg_10_03_0f |= c->ramcfg_10_03_0f != 0;
 	v->ramcfg_10_04_20 |= c->ramcfg_10_04_20 != 0;
 	v->ramcfg_10_04_10 |= c->ramcfg_10_04_10 != 0;
+	v->ramcfg_10_04_08 |= c->ramcfg_10_04_08 != p->ramcfg_10_04_08;
 done:
 	if (ret)
 		kfree(cfg);

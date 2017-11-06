@@ -68,8 +68,9 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 	struct nvkm_memx *memx = ram->memx;
 	u32 mask, data;
 
-	data = (c->bios.timing_10_RFC & 0xff) << 8;
-	mask = 0x0000ff00;
+	data = (c->bios.timing_10_RAS & 0x7f) << 17 |
+	       (c->bios.timing_10_RFC & 0xff) << 8;
+	mask = 0x00feff00;
 	if (v->timing_10_RC) {
 		data |= c->bios.timing_10_RC;
 		mask |= 0x000000ff;

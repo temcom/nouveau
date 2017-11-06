@@ -142,7 +142,7 @@ gf100_ram_calc_gddr5_r10f640(struct gf100_ram *ram)
 			memx_mask(memx, addr + 0x640, 0xffffffff, data[0]);
 		} else {
 			data[0] = 0x11111111 * c->bios.ramcfg_10_07_f0;
-			data[1] = 0xaaaaaaaa;
+			data[1] = 0x11111111 * c->bios.ramcfg_10_07_0f;
 			if (memx_rd32(memx, addr + 0x644) != data[1] ||
 			    memx_rd32(memx, addr + 0x640) != data[0]) {
 				memx_wr32(memx, 0x10f644, data[1]);
@@ -638,8 +638,9 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	if (v->rammap_10_04_08) {
 		if (c->bios.rammap_10_04_08) {
-			data = c->bios.ramcfg_10_07_f0 << 4;
-			mask = 0x000000f0;
+			data = c->bios.ramcfg_10_07_f0 << 4 |
+			       c->bios.ramcfg_10_07_0f;
+			mask = 0x000000ff;
 			memx_mask(memx, 0x10f660, mask, data, FORCE);
 
 			if (mask = 0, data = 0, v->ramcfg_10_03_0f) {

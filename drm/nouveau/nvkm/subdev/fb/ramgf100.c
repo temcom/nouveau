@@ -68,6 +68,13 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 	struct nvkm_memx *memx = ram->memx;
 	u32 mask, data;
 
+	data = mask = 0;
+	if (v->timing_10_RC) {
+		data |= c->bios.timing_10_RC;
+		mask |= 0x000000ff;
+	}
+	memx_mask(memx, 0x10f290, mask, data);
+
 	data = 0;
 	if (ram->base.type != NVKM_RAM_TYPE_GDDR5 &&
 	    v->ramcfg_DLLoff && c->bios.ramcfg_DLLoff)
@@ -1411,6 +1418,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->ramcfg_10_09_f0 |= c->ramcfg_10_09_f0 != 0;
 	v->ramcfg_10_0c |= c->ramcfg_10_0c != 0;
 	v->ramcfg_10_0d_0f |= c->ramcfg_10_0d_0f != 0;
+	v->timing_10_RC |= c->timing_10_RC != 0;
 done:
 	if (ret)
 		kfree(cfg);

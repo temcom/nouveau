@@ -61,6 +61,7 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq, int l3)
 
 	switch (ram->next->bios.timing_ver) {
 	case 0x10:
+		MR_LOAD(WR, c->timing_10_WR - 4);
 		break;
 	case 0x20:
 		MR_LOAD(WL, (c->timing[1] & 0x00000f80) >> 7);

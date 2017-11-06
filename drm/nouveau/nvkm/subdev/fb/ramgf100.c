@@ -63,6 +63,7 @@ gf100_ram_calc_r61c140(struct nvkm_ram *base)
 static void
 gf100_ram_calc_timing(struct gf100_ram *ram)
 {
+	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_memx *memx = ram->memx;
 	u32 mask, data;
 
@@ -70,6 +71,8 @@ gf100_ram_calc_timing(struct gf100_ram *ram)
 		data |= 0x00000011 * (ram->mode == DIV);
 		mask |= 0x000000ff;
 	}
+	data |= (c->bios.timing_10_WR  & 0x7f) << 16;
+	mask |= 0x007f0000;
 	memx_mask(memx, 0x10f298, mask, data);
 }
 
@@ -700,8 +703,10 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	gf100_ram_calc_sddr3_dll_reset(memx);
 
-	memx_mask(memx, 0x10f300, 0x00000000, 0x00000000, FORCE);
+	memx_mask(memx, 0x10f300, mr[0].mask, mr[0].data, FORCE);
 	memx_nsec(memx, 1000);
+
+	gf100_ram_calc_timing(ram);
 
 	if (v->ramcfg_10_02_08) {
 		data = 0x00001000 * !c->bios.ramcfg_10_02_08;

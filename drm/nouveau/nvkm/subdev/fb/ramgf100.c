@@ -63,9 +63,19 @@ gf100_ram_calc_r61c140(struct nvkm_ram *base)
 static void
 gf100_ram_calc_timing(struct gf100_ram *ram)
 {
+	struct nvbios_ramcfg *v = &ram->base.diff;
 	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_memx *memx = ram->memx;
 	u32 mask, data;
+
+	data = 0;
+	if (ram->base.type != NVKM_RAM_TYPE_GDDR5 &&
+	    v->ramcfg_DLLoff && c->bios.ramcfg_DLLoff)
+		data |= (c->bios.timing_10_CL & 0x7f) - 1;
+	else
+		data |= (c->bios.timing_10_CL & 0x7f);
+	mask = 0x0000007f;
+	memx_mask(memx, 0x10f294, mask, data);
 
 	if (mask = 0, data = 0, ram->base.type == NVKM_RAM_TYPE_GDDR5) {
 		data |= 0x00000011 * (ram->mode == DIV);

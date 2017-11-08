@@ -738,6 +738,10 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 	memx_mask(memx, 0x10f300, mr[0].mask, mr[0].data, FORCE);
 	memx_nsec(memx, 1000);
 
+	data = (c->bios.timing_10_12 & 0x1f) << 16;
+	mask = 0x001f0000;
+	memx_mask(memx, 0x10f224, mask, data);
+
 	gf100_ram_calc_timing(ram);
 
 	if (v->ramcfg_10_02_08) {

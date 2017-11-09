@@ -44,6 +44,7 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq, int l3)
 		MR_COND(pd, c->ramcfg_10_03_40, v->ramcfg_10_03_40);
 		MR_COND(lf, c->ramcfg_10_03_20, v->ramcfg_10_03_20);
 		MR_COND(vh, c->ramcfg_10_04_20, v->ramcfg_10_04_20);
+		MR_COND(vo, c->ramcfg_10_0c, v->ramcfg_10_0c);
 		break;
 	case 0x11:
 		MR_LOAD(pd, c->ramcfg_11_01_80); /*XXX: RM !1->0 */

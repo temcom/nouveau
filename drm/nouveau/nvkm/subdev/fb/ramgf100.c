@@ -271,8 +271,17 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	gf100_ram_calc_gddr5_r10f640(ram);
 
-	if (ram->mode == DIV) {
+	if (ram->mode == DIV)
 		memx_mask(memx, 0x10f830, 0x00000000, 0x00000000, FORCE);
+
+	if (c->bios.rammap_10_0d_01) {
+		data = 0x11111111;
+		memx_mask(memx, 0x10f628, 0xffffffff, data);
+		data = 0x99999999;
+		memx_mask(memx, 0x10f62c, 0xffffffff, data);
+	}
+
+	if (ram->mode == DIV) {
 		gf100_ram_calc_train(ram, 0xffffffff, 0x80021001);
 		if (c->bios.rammap_10_0d_02) {
 			memx_nsec(memx, 1000);

@@ -44,4 +44,6 @@ struct nvbios_perf_fan {
 };
 
 int nvbios_perf_fan_parse(struct nvkm_bios *, struct nvbios_perf_fan *);
+
+int nvbios_perfSSp(struct nvkm_bios *, u32 addr, u32 *data);
 #endif

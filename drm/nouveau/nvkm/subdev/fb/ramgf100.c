@@ -24,6 +24,7 @@
 #include "ramgf100.h"
 
 #include <core/option.h>
+#include <subdev/bios/perf.h>
 #include <subdev/bios/M0205.h>
 #include <subdev/bios/rammap.h>
 #include <subdev/bios/timing.h>
@@ -94,6 +95,37 @@ gf100_ram_calc_fb_access(struct gf100_ram *ram, bool access, u8 r100b0c)
 	}
 
 	return r100b0c;
+}
+
+static void
+gf100_ram_calc_gddr5_r10f640(struct gf100_ram *ram)
+{
+	struct nvkm_ram_data *c = ram->base.next;
+	struct nvkm_bios *bios = ram->base.fb->subdev.device->bios;
+	struct nvkm_memx *memx = ram->memx;
+	u32 addr, data[2];
+	int fbpa;
+
+	for_each_set_bit(fbpa, &ram->base.fbpam, ram->base.fbpan) {
+		addr = 0x110000 + (fbpa * 0x1000);
+		if (c->bios.rammap_10_04_40) {
+			if (nvbios_perfSSp(bios, addr + 0x640, &data[0]) ||
+			    nvbios_perfSSp(bios, addr + 0x644, &data[1]))
+				break;
+
+			memx_mask(memx, addr + 0x644, 0xffffffff, data[1]);
+			memx_mask(memx, addr + 0x640, 0xffffffff, data[0]);
+		} else {
+			data[0] = 0x00000000;
+			data[1] = 0xaaaaaaaa;
+			if (memx_rd32(memx, addr + 0x644) != data[1] ||
+			    memx_rd32(memx, addr + 0x640) != data[0]) {
+				memx_wr32(memx, 0x10f644, data[1]);
+				memx_wr32(memx, 0x10f640, data[0]);
+				break;
+			}
+		}
+	}
 }
 
 static int
@@ -234,6 +266,8 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	if (memx_mask(memx, 0x10f340, mr[5].mask, mr[5].data & ~0x004, DIFF))
 		memx_nsec(memx, 1000);
+
+	gf100_ram_calc_gddr5_r10f640(ram);
 
 	if (ram->mode == DIV) {
 		memx_mask(memx, 0x10f830, 0x00000000, 0x00000000, FORCE);

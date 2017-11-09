@@ -24,6 +24,7 @@
 #include <subdev/bios.h>
 #include <subdev/bios/bit.h>
 #include <subdev/bios/perf.h>
+#include <subdev/bios/ramcfg.h>
 #include <subdev/pci.h>
 
 u32
@@ -215,4 +216,45 @@ nvbios_perf_fan_parse(struct nvkm_bios *bios,
 		fan->pwm_divisor = 0;
 
 	return 0;
+}
+
+int
+nvbios_perfSSp(struct nvkm_bios *bios, u32 addr, u32 *data)
+{
+	struct nvkm_subdev *subdev = &bios->subdev;
+	struct bit_entry bit_P;
+	u8  opcode, idx, cnt, inc, num;
+	u32 s = 0, reg;
+
+	/* Lookup pointer to Performance Settings Script. */
+	if (!bit_entry(bios, 'P', &bit_P)) {
+		if (bit_P.version == 2)
+			s = nvbios_rd32(bios, bit_P.offset + 0x1c);
+	}
+
+	/* Parse script for the register we're interested in. */
+	while (s && (opcode = nvbios_rd08(bios, s + 0x00)) != 0x71) {
+		switch (opcode) {
+		case 0x8f: /* INIT_XMEMSEL_ZM_NV_REG_ARRAY */
+			idx = nvbios_ramcfg_index(&bios->subdev);
+			cnt = nvbios_ramcfg_count(bios);
+			reg = nvbios_rd32(bios, s + 0x01);
+			inc = nvbios_rd08(bios, s + 0x05);
+			num = nvbios_rd08(bios, s + 0x06);
+			for (s += 7; num; reg += inc, s += cnt * 4, num--) {
+				if (reg == addr) {
+					*data = nvbios_rd32(bios, s + idx * 4);
+					return 0;
+				}
+			}
+			break;
+		default:
+			nvkm_warn(subdev, "DEVINIT opcode %02x not supported "
+				  "in PSS interpreter\n", opcode);
+			return -EINVAL;
+		}
+	}
+
+	nvkm_warn(subdev, "0x%06x not found in PSS\n", addr);
+	return -ENOENT;
 }

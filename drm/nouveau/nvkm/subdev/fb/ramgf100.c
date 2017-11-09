@@ -1453,6 +1453,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->timing_10_ODT |= c->timing_10_ODT != 0;
 	v->timing_10_CWL |= c->timing_10_CWL != 0;
 	v->timing_10_16_0c |= c->timing_10_16_0c != 0;
+	v->timing_10_16_03 |= c->timing_10_16_03 != 0;
 done:
 	if (ret)
 		kfree(cfg);

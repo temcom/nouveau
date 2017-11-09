@@ -403,7 +403,7 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f830, 0x00000000, 0x00000000, FORCE);
 
 	if (c->bios.rammap_10_0d_01) {
-		data = 0x11111111;
+		data = 0x11111111 * c->bios.ramcfg_10_05_f0;
 		memx_mask(memx, 0x10f628, 0xffffffff, data);
 		data = 0x99999999;
 		memx_mask(memx, 0x10f62c, 0xffffffff, data);
@@ -449,6 +449,16 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		memx_mask(memx, 0x10f200, 0x00000800, 0x00000800);
 
 	return 0;
+}
+
+static void
+gf100_ram_calc_sddr3_r10f658(struct gf100_ram *ram)
+{
+	struct nvkm_ram_data *c = ram->base.next;
+	struct nvkm_memx *memx = ram->memx;
+	memx_mask(memx, 0x10f658, 0x0000f0f0,
+			(c->bios.ramcfg_10_05_f0 << 12) |
+			(c->bios.ramcfg_10_05_f0 << 4));
 }
 
 static void
@@ -615,6 +625,8 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	if (rammap_10_04_01)
 		memx_mask(memx, 0x10f824, 0x00006000, 0x00000000);
+	else
+		gf100_ram_calc_sddr3_r10f658(ram);
 
 	gf100_ram_calc_sddr3_r132018(ram, lowspeed, rammap_10_04_01, true);
 	if (rammap_10_04_01)
@@ -639,6 +651,8 @@ gf100_ram_calc_sddr3(struct gf100_ram *ram)
 
 	if (!rammap_10_04_01)
 		memx_mask(memx, 0x10f824, 0x00006000, 0x00006000);
+	else
+		gf100_ram_calc_sddr3_r10f658(ram);
 
 	if (!v->rammap_10_04_08 || !c->bios.rammap_10_04_08) {
 		data = 0x22222222 * lowspeed;

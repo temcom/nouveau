@@ -64,6 +64,7 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq, int l3)
 		MR_LOAD(WR, c->timing_10_WR - 4);
 		MR_LOAD(CL, c->timing_10_CL - 5);
 		MR_COND(ds, c->timing_10_0e_30, v->timing_10_0e_30);
+		MR_COND(dt, c->timing_10_ODT, v->timing_10_ODT);
 		break;
 	case 0x20:
 		MR_LOAD(WL, (c->timing[1] & 0x00000f80) >> 7);

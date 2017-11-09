@@ -30,6 +30,7 @@
 #include <subdev/bios/timing.h>
 #include <subdev/clk.h>
 #include <subdev/clk/pll.h>
+#include <subdev/gpio.h>
 #include <subdev/pmu.h>
 #include <subdev/timer.h>
 #include <engine/disp.h>
@@ -152,6 +153,7 @@ static int
 gf100_ram_calc_gddr5(struct gf100_ram *ram)
 {
 	struct nvkm_device *device = ram->base.fb->subdev.device;
+	struct nvkm_gpio *gpio = device->gpio;
 	struct nvbios_ramcfg *v = &ram->base.diff;
 	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_ram_mr *mr = ram->base.mr;
@@ -214,6 +216,12 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	/* Wait for a vblank window, and disable FB access. */
 	r100b0c = gf100_ram_calc_fb_access(ram, false, 0x12);
+
+	if (v->ramcfg_10_04_10 && !c->bios.ramcfg_10_04_10 &&
+	    nvkm_gpio_get(gpio, 0, 0x2e, DCB_GPIO_UNUSED) == 0) {
+		nvkm_gpio_set(gpio, 0, 0x2e, DCB_GPIO_UNUSED, 1, &memx->sink);
+		memx_nsec(memx, 20000);
+	}
 
 	memx_mask(memx, 0x10f200, 0x00000800, 0x00000000);
 
@@ -362,6 +370,12 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	ram->base.func->calc_r61c140_100c00(&ram->base);
 
 	gf100_ram_calc_gddr5_r10f640(ram);
+
+	if (v->ramcfg_10_04_10 && c->bios.ramcfg_10_04_10 &&
+	    nvkm_gpio_get(gpio, 0, 0x2e, DCB_GPIO_UNUSED) == 1) {
+		nvkm_gpio_set(gpio, 0, 0x2e, DCB_GPIO_UNUSED, 0, &memx->sink);
+		memx_nsec(memx, 20000);
+	}
 
 	if (ram->mode == DIV)
 		memx_mask(memx, 0x10f830, 0x00000000, 0x00000000, FORCE);
@@ -1293,6 +1307,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->ramcfg_10_03_20 |= c->ramcfg_10_03_20 != 0;
 	v->ramcfg_10_03_0f |= c->ramcfg_10_03_0f != 0;
 	v->ramcfg_10_04_20 |= c->ramcfg_10_04_20 != 0;
+	v->ramcfg_10_04_10 |= c->ramcfg_10_04_10 != 0;
 done:
 	if (ret)
 		kfree(cfg);

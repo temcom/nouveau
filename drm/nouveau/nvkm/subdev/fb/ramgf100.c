@@ -1433,6 +1433,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->ramcfg_10_0c |= c->ramcfg_10_0c != 0;
 	v->ramcfg_10_0d_0f |= c->ramcfg_10_0d_0f != 0;
 	v->timing_10_RC |= c->timing_10_RC != 0;
+	v->timing_10_0e_30 |= c->timing_10_0e_30 != 0;
 done:
 	if (ret)
 		kfree(cfg);

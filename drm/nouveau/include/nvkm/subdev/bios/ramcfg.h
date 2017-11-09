@@ -156,6 +156,7 @@ struct nvbios_ramcfg {
 			unsigned timing_10_RRD:8;
 			unsigned timing_10_0d:8;
 			unsigned timing_10_ODT:3;
+			unsigned timing_10_0e_30:2;
 			/* empty: 15 */
 			unsigned timing_10_10:8;
 			/* empty: 17 */

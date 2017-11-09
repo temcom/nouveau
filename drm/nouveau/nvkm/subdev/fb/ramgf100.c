@@ -57,6 +57,10 @@ gf100_ram_calc_r61c140(struct nvkm_ram *base)
 		data |= c->bios.ramcfg_10_04_03 << 25;
 		mask |= 0x06000000;
 	}
+	if (v->timing_10_18) {
+		data |= c->bios.timing_10_18 << 22;
+		mask |= 0x01c00000;
+	}
 	memx_mask(memx, 0x61c140, mask, data);
 }
 
@@ -397,11 +401,19 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		data |= 0x00000100 * !!c->bios.ramcfg_10_02_01;
 		mask |= 0x00000100;
 	}
+	if (v->timing_10_18) {
+		data |= c->bios.timing_10_18 << 28;
+		mask |= 0x70000000;
+	}
 	memx_mask(memx, 0x10f614, mask, data);
 
 	if (mask = 0, data = 0, v->ramcfg_10_02_02) {
 		data |= 0x00000100 * !!c->bios.ramcfg_10_02_02;
 		mask |= 0x00000100;
+	}
+	if (v->timing_10_18) {
+		data |= c->bios.timing_10_18 << 28;
+		mask |= 0x70000000;
 	}
 	memx_mask(memx, 0x10f610, mask, data);
 
@@ -1454,6 +1466,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->timing_10_CWL |= c->timing_10_CWL != 0;
 	v->timing_10_16_0c |= c->timing_10_16_0c != 0;
 	v->timing_10_16_03 |= c->timing_10_16_03 != 0;
+	v->timing_10_18 |= c->timing_10_18 != 0;
 done:
 	if (ret)
 		kfree(cfg);

@@ -136,8 +136,9 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_ram_mr *mr = ram->base.mr;
 	struct nvkm_memx *memx = ram->memx;
+	u32 data;
 	u8 r100b0c;
-	int ret;
+	int ret, i;
 
 	if ((ram->from == DIV && ram->mode != DIV && ram->mode != PLL2) ||
 	    (ram->from != DIV && ram->mode != DIV))
@@ -273,7 +274,19 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	if (ram->mode == DIV) {
 		memx_mask(memx, 0x10f830, 0x00000000, 0x00000000, FORCE);
 		gf100_ram_calc_train(ram, 0xffffffff, 0x80021001);
-		gf100_ram_calc_train(ram, 0xffffffff, 0x80081001);
+		if (c->bios.rammap_10_0d_02) {
+			memx_nsec(memx, 1000);
+			data = 0x88888888;
+			memx_wr32(memx, 0x10f630, data);
+			data = 0xffffffff;
+			memx_wr32(memx, 0x10f634, data);
+			data = 0x00000005;
+			for (i = 0; i < 8; i++)
+				memx_wr32(memx, 0x10fc20 + (i * 0x0c), data);
+			memx_nsec(memx, 1000);
+		} else {
+			gf100_ram_calc_train(ram, 0xffffffff, 0x80081001);
+		}
 
 		if (memx_mask(memx, 0x10f340, mr[5].mask, mr[5].data, DIFF))
 			memx_nsec(memx, 1000);

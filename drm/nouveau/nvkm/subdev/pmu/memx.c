@@ -3,6 +3,8 @@
 #define nvkm_memx(p) container_of((p), struct nvkm_memx_priv, memx.sink)
 #include "priv.h"
 
+#include <subdev/fb.h>
+
 struct nvkm_memx_priv {
 	struct nvkm_memx memx;
 	struct nvkm_pmu *pmu;
@@ -13,6 +15,8 @@ struct nvkm_memx_priv {
 		u32 size;
 		u32 data[64];
 	} c;
+	u32 fbpa_war_nsec;
+	u32 fbpa_war;
 };
 
 static void
@@ -135,11 +139,53 @@ nvkm_memx_nsec(struct nvkm_sink *sink, u64 nsec)
 	memx_out(memx); /* fuc can't handle multiple */
 }
 
+void
+nvkm_memx_fbpa_war_nsec(struct nvkm_memx *base, u32 nsec)
+{
+	struct nvkm_memx_priv *memx = nvkm_memx_priv(base);
+	nvkm_debug(&memx->pmu->subdev, "FBPA_WAR_NSEC %d ns\n", nsec);
+	memx->fbpa_war_nsec = nsec;
+}
+
+static void nvkm_memx_wr32(struct nvkm_sink *, u32, u32);
+static void
+nvkm_memx_fbpa_war(struct nvkm_sink *sink, u32 addr)
+{
+	struct nvkm_memx_priv *memx = nvkm_memx(sink);
+	struct nvkm_subdev *subdev = &memx->pmu->subdev;
+	struct nvkm_ram *ram = subdev->device->fb->ram;
+	u32 fbpa_war;
+	if (memx->fbpa_war_nsec) {
+		if (addr >= 0x10f000 && addr < 0x110000) {
+			if ((addr >= 0x10f604 && addr < 0x10f910) ||
+			    (addr >= 0x10fb04 && addr < 0x10fe20))
+				memx->fbpa_war++;
+			return;
+		}
+
+		if (!(fbpa_war = memx->fbpa_war))
+			return;
+		memx->fbpa_war = 0;
+
+		nvkm_memx_wr32(sink, 0x13d834 + ((ram->fbps - 1) * 0x40), 0);
+
+		nvkm_debug(subdev, "FBPA_WAR_WAIT %d\n", fbpa_war);
+		fbpa_war *= memx->fbpa_war_nsec;
+		if (fbpa_war) {
+			memx_cmd(memx, MEMX_DELAY, 1, (u32[]){ fbpa_war });
+			memx_out(memx); /* fuc can't handle multiple */
+		}
+	}
+}
+
 static void
 nvkm_memx_wait(struct nvkm_sink *sink,
 	       u32 addr, u32 mask, u32 data, u64 nsec)
 {
 	struct nvkm_memx_priv *memx = nvkm_memx(sink);
+
+	nvkm_memx_fbpa_war(sink, addr);
+
 	nvkm_debug(&memx->pmu->subdev, "R[%06x] & %08x == %08x, %lld ns\n",
 		   addr, mask, data, nsec);
 	memx_cmd(memx, MEMX_WAIT, 4, (u32[]){ addr, mask, data, nsec });
@@ -150,6 +196,9 @@ static void
 nvkm_memx_wr32(struct nvkm_sink *sink, u32 addr, u32 data)
 {
 	struct nvkm_memx_priv *memx = nvkm_memx(sink);
+
+	nvkm_memx_fbpa_war(sink, addr);
+
 	nvkm_debug(&memx->pmu->subdev, "R[%06x] = %08x\n", addr, data);
 	memx_cmd(memx, MEMX_WR32, 2, (u32[]){ addr, data });
 }

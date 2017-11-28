@@ -80,8 +80,9 @@ gp100_ram_probe_fbpa(struct nvkm_device *device, int fbpa)
 static const struct nvkm_ram_func
 gp100_ram = {
 	.upper = 0x1000000000,
-	.probe_fbp = gm107_ram_probe_fbp,
-	.probe_fbp_amount = gm200_ram_probe_fbp_amount,
+	.probe_fbps = gm200_ram_probe_fbps,
+	.probe_fbp_ltcs = gm200_ram_probe_fbp_ltcs,
+	.probe_fbpas = gm107_ram_probe_fbpas,
 	.probe_fbpa_amount = gp100_ram_probe_fbpa,
 	.init = gp100_ram_init,
 };

@@ -125,6 +125,14 @@ struct nvkm_ram {
 	int parts;
 	int part_mask;
 
+	int fbpn;		/* FBP count (maximum). */
+	int fbps;		/* FBP count (present). */
+	unsigned long fbpm;	/* Mask of present FBPs. */
+
+	int fbpan;		/* FBPA count (maximum). */
+	int fbpas;		/* FBPA count (present). */
+	unsigned long fbpam;	/* Mask of present FBPAs. */
+
 	u32 freq;
 	u32 mr[16];
 	u32 mr1_nuts;
@@ -141,10 +149,9 @@ nvkm_ram_get(struct nvkm_device *, u8 heap, u8 type, u8 page, u64 size,
 
 struct nvkm_ram_func {
 	u64 upper;
-	u32 (*probe_fbp)(const struct nvkm_ram_func *, struct nvkm_device *,
-			 int fbp, int *pltcs);
-	u32 (*probe_fbp_amount)(const struct nvkm_ram_func *, u32 fbpao,
-				struct nvkm_device *, int fbp, int *pltcs);
+	int (*probe_fbps)(struct nvkm_device *, unsigned long *disabled);
+	int (*probe_fbp_ltcs)(struct nvkm_device *, int fbp);
+	int (*probe_fbpas)(struct nvkm_device *, unsigned long *disabled);
 	u32 (*probe_fbpa_amount)(struct nvkm_device *, int fbpa);
 	void *(*dtor)(struct nvkm_ram *);
 	int (*init)(struct nvkm_ram *);

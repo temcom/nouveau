@@ -468,23 +468,17 @@ gf100_ram_probe_fbpa_amount(struct nvkm_device *device, int fbpa)
 	return nvkm_rd32(device, 0x11020c + (fbpa * 0x1000));
 }
 
-u32
-gf100_ram_probe_fbp_amount(const struct nvkm_ram_func *func, u32 fbpao,
-			   struct nvkm_device *device, int fbp, int *pltcs)
+int
+gf100_ram_probe_fbp_ltcs(struct nvkm_device *device, int fbp)
 {
-	if (!(fbpao & BIT(fbp))) {
-		*pltcs = 1;
-		return func->probe_fbpa_amount(device, fbp);
-	}
-	return 0;
+	return 1;
 }
 
-u32
-gf100_ram_probe_fbp(const struct nvkm_ram_func *func,
-		    struct nvkm_device *device, int fbp, int *pltcs)
+int
+gf100_ram_probe_fbps(struct nvkm_device *device, unsigned long *opt)
 {
-	u32 fbpao = nvkm_rd32(device, 0x022554);
-	return func->probe_fbp_amount(func, fbpao, device, fbp, pltcs);
+	*opt = nvkm_rd32(device, 0x022554);
+	return nvkm_rd32(device, 0x022438);
 }
 
 int
@@ -497,22 +491,37 @@ gf100_ram_ctor(const struct nvkm_ram_func *func, struct nvkm_fb *fb,
 	const u32 rsvd_head = ( 256 * 1024); /* vga memory */
 	const u32 rsvd_tail = (1024 * 1024); /* vbios etc */
 	enum nvkm_ram_type type = nvkm_fb_bios_memtype(bios);
-	u32 fbps = nvkm_rd32(device, 0x022438);
 	u64 total = 0, lcomm = ~0, lower, ubase, usize;
-	int ret, fbp, ltcs, ltcn = 0;
+	int ret, fbp, ltcn = 0;
 
-	nvkm_debug(subdev, "%d FBP(s)\n", fbps);
-	for (fbp = 0; fbp < fbps; fbp++) {
-		u32 size = func->probe_fbp(func, device, fbp, &ltcs);
-		if (size) {
-			nvkm_debug(subdev, "FBP %d: %4d MiB, %d LTC(s)\n",
-				   fbp, size, ltcs);
-			lcomm  = min(lcomm, (u64)(size / ltcs) << 20);
-			total += (u64) size << 20;
-			ltcn  += ltcs;
-		} else {
-			nvkm_debug(subdev, "FBP %d: disabled\n", fbp);
+	ram->fbpn = func->probe_fbps(device, &ram->fbpm);
+	ram->fbpm = ((1 << ram->fbpn) - 1) & ~ram->fbpm;
+	ram->fbps = hweight32(ram->fbpm);
+	nvkm_debug(subdev, "%d FBP (s): %d present (%lx)\n",
+		   ram->fbpn, ram->fbps, ram->fbpm);
+
+	ram->fbpan = func->probe_fbpas(device, &ram->fbpam);
+	ram->fbpam = ((1 << ram->fbpan) - 1) & ~ram->fbpam;
+	ram->fbpas = hweight32(ram->fbpam);
+	nvkm_debug(subdev, "%d FBPA(s): %d present (%lx)\n",
+		   ram->fbpan, ram->fbpas, ram->fbpam);
+
+	for_each_set_bit(fbp, &ram->fbpm, ram->fbpn) {
+		int ltcs = func->probe_fbp_ltcs(device, fbp);
+		u32 size = 0, fbpa_fbp = (ram->fbpan / ram->fbpn);
+		u32 fbpa = fbp * fbpa_fbp;
+
+		while (fbpa_fbp--) {
+			if (ram->fbpam & BIT(fbpa))
+				size += func->probe_fbpa_amount(device, fbpa);
+			fbpa++;
 		}
+
+		nvkm_debug(subdev, "FBP %d: %4d MiB, %d LTC(s)\n",
+			   fbp, size, ltcs);
+		lcomm  = min(lcomm, (u64)(size / ltcs) << 20);
+		total += (u64) size << 20;
+		ltcn  += ltcs;
 	}
 
 	lower = lcomm * ltcn;
@@ -656,8 +665,9 @@ gf100_ram_new_(const struct nvkm_ram_func *func,
 static const struct nvkm_ram_func
 gf100_ram = {
 	.upper = 0x0200000000,
-	.probe_fbp = gf100_ram_probe_fbp,
-	.probe_fbp_amount = gf100_ram_probe_fbp_amount,
+	.probe_fbps = gf100_ram_probe_fbps,
+	.probe_fbp_ltcs = gf100_ram_probe_fbp_ltcs,
+	.probe_fbpas = gf100_ram_probe_fbps,
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
 	.init = gf100_ram_init,
 	.calc = gf100_ram_calc,

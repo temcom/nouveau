@@ -23,34 +23,28 @@
  */
 #include "ram.h"
 
-u32
-gm200_ram_probe_fbp_amount(const struct nvkm_ram_func *func, u32 fbpao,
-			   struct nvkm_device *device, int fbp, int *pltcs)
+int
+gm200_ram_probe_fbp_ltcs(struct nvkm_device *device, int fbp)
 {
-	u32 ltcs  = nvkm_rd32(device, 0x022450);
-	u32 fbpas = nvkm_rd32(device, 0x022458);
-	u32 fbpa  = fbp * fbpas;
-	u32 size  = 0;
-	if (!(nvkm_rd32(device, 0x021d38) & BIT(fbp))) {
-		u32 ltco = nvkm_rd32(device, 0x021d70 + (fbp * 4));
-		u32 ltcm = ~ltco & ((1 << ltcs) - 1);
+	u32 ltco = nvkm_rd32(device, 0x021d70 + (fbp * 4));
+	u32 ltcs = nvkm_rd32(device, 0x022450);
+	u32 ltcm = ((1 << ltcs) - 1) & ~ltco;
+	return hweight32(ltcm);
+}
 
-		while (fbpas--) {
-			if (!(fbpao & (1 << fbpa)))
-				size += func->probe_fbpa_amount(device, fbpa);
-			fbpa++;
-		}
-
-		*pltcs = hweight32(ltcm);
-	}
-	return size;
+int
+gm200_ram_probe_fbps(struct nvkm_device *device, unsigned long *opt)
+{
+	*opt = nvkm_rd32(device, 0x021d38);
+	return nvkm_rd32(device, 0x022438);
 }
 
 static const struct nvkm_ram_func
 gm200_ram = {
 	.upper = 0x1000000000,
-	.probe_fbp = gm107_ram_probe_fbp,
-	.probe_fbp_amount = gm200_ram_probe_fbp_amount,
+	.probe_fbps = gm200_ram_probe_fbps,
+	.probe_fbp_ltcs = gm200_ram_probe_fbp_ltcs,
+	.probe_fbpas = gm107_ram_probe_fbpas,
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
 	.dtor = gk104_ram_dtor,
 	.init = gk104_ram_init,

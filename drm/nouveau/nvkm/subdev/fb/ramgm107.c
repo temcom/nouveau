@@ -23,19 +23,25 @@
  */
 #include "ram.h"
 
-u32
-gm107_ram_probe_fbp(const struct nvkm_ram_func *func,
-		    struct nvkm_device *device, int fbp, int *pltcs)
+int
+gm107_ram_probe_fbpas(struct nvkm_device *device, unsigned long *opt)
 {
-	u32 fbpao = nvkm_rd32(device, 0x021c14);
-	return func->probe_fbp_amount(func, fbpao, device, fbp, pltcs);
+	*opt = nvkm_rd32(device, 0x021c14);
+	return nvkm_rd32(device, 0x02243c);
+}
+
+static int
+gm107_ram_probe_fbps(struct nvkm_device *device, unsigned long *opt)
+{
+	return nvkm_rd32(device, 0x022438);
 }
 
 static const struct nvkm_ram_func
 gm107_ram = {
 	.upper = 0x1000000000,
-	.probe_fbp = gm107_ram_probe_fbp,
-	.probe_fbp_amount = gf108_ram_probe_fbp_amount,
+	.probe_fbps = gm107_ram_probe_fbps,
+	.probe_fbp_ltcs = gf100_ram_probe_fbp_ltcs,
+	.probe_fbpas = gm107_ram_probe_fbpas,
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
 	.dtor = gk104_ram_dtor,
 	.init = gk104_ram_init,

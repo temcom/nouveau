@@ -1699,8 +1699,9 @@ gk104_ram_new_(const struct nvkm_ram_func *func, struct nvkm_fb *fb,
 static const struct nvkm_ram_func
 gk104_ram = {
 	.upper = 0x0200000000,
-	.probe_fbp = gf100_ram_probe_fbp,
-	.probe_fbp_amount = gf108_ram_probe_fbp_amount,
+	.probe_fbps = gf100_ram_probe_fbps,
+	.probe_fbp_ltcs = gf100_ram_probe_fbp_ltcs,
+	.probe_fbpas = gf108_ram_probe_fbpas,
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
 	.dtor = gk104_ram_dtor,
 	.init = gk104_ram_init,

@@ -17,17 +17,12 @@ extern const struct nvkm_ram_func nv04_ram_func;
 int  nv50_ram_ctor(const struct nvkm_ram_func *, struct nvkm_fb *,
 		   struct nvkm_ram *);
 
-int gf100_ram_new_(const struct nvkm_ram_func *, struct nvkm_fb *,
-		   struct nvkm_ram **);
 int  gf100_ram_ctor(const struct nvkm_ram_func *, struct nvkm_fb *,
 		    struct nvkm_ram *);
 int gf100_ram_probe_fbps(struct nvkm_device *, unsigned long *);
 int gf100_ram_probe_fbp_ltcs(struct nvkm_device *, int);
 u32  gf100_ram_probe_fbpa_amount(struct nvkm_device *, int);
 int gf100_ram_init(struct nvkm_ram *);
-int gf100_ram_calc(struct nvkm_ram *, u8, u32);
-int gf100_ram_prog(struct nvkm_ram *);
-void gf100_ram_tidy(struct nvkm_ram *);
 
 int gf108_ram_probe_fbpas(struct nvkm_device *, unsigned long *);
 
@@ -120,6 +115,7 @@ int nv50_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int gt215_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int mcp77_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int gf100_ram_new(struct nvkm_fb *, struct nvkm_ram **);
+int gf104_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int gf108_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int gk104_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int gm107_ram_new(struct nvkm_fb *, struct nvkm_ram **);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat Inc.
+ * Copyright 2013 Red Hat Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,22 +19,16 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  *
- * Authors: Ben Skeggs <bskeggs@redhat.com>
+ * Authors: Ben Skeggs
  */
 #include "ramgf100.h"
 
-int
-gf108_ram_probe_fbpas(struct nvkm_device *device, unsigned long *opt)
-{
-	return nvkm_rd32(device, 0x02243c);
-}
-
 static const struct nvkm_ram_func
-gf108_ram = {
+gf104_ram = {
 	.upper = 0x0200000000,
 	.probe_fbps = gf100_ram_probe_fbps,
 	.probe_fbp_ltcs = gf100_ram_probe_fbp_ltcs,
-	.probe_fbpas = gf108_ram_probe_fbpas,
+	.probe_fbpas = gf100_ram_probe_fbps,
 	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
 	.init = gf100_ram_init,
 	.calc = gf100_ram_calc,
@@ -43,7 +37,7 @@ gf108_ram = {
 };
 
 int
-gf108_ram_new(struct nvkm_fb *fb, struct nvkm_ram **pram)
+gf104_ram_new(struct nvkm_fb *fb, struct nvkm_ram **pram)
 {
-	return gf100_ram_new_(&gf108_ram, fb, pram);
+	return gf100_ram_new_(&gf104_ram, fb, pram);
 }

@@ -18,32 +18,23 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- *
- * Authors: Ben Skeggs <bskeggs@redhat.com>
  */
-#include "ramgf100.h"
+#include "gf100.h"
+#include "ram.h"
 
-int
-gf108_ram_probe_fbpas(struct nvkm_device *device, unsigned long *opt)
-{
-	return nvkm_rd32(device, 0x02243c);
-}
-
-static const struct nvkm_ram_func
-gf108_ram = {
-	.upper = 0x0200000000,
-	.probe_fbps = gf100_ram_probe_fbps,
-	.probe_fbp_ltcs = gf100_ram_probe_fbp_ltcs,
-	.probe_fbpas = gf108_ram_probe_fbpas,
-	.probe_fbpa_amount = gf100_ram_probe_fbpa_amount,
-	.init = gf100_ram_init,
-	.calc = gf100_ram_calc,
-	.prog = gf100_ram_prog,
-	.tidy = gf100_ram_tidy,
+static const struct nvkm_fb_func
+gf104_fb = {
+	.dtor = gf100_fb_dtor,
+	.oneinit = gf100_fb_oneinit,
+	.init = gf100_fb_init,
+	.init_page = gf100_fb_init_page,
+	.intr = gf100_fb_intr,
+	.ram_new = gf104_ram_new,
+	.default_bigpage = 17,
 };
 
 int
-gf108_ram_new(struct nvkm_fb *fb, struct nvkm_ram **pram)
+gf104_fb_new(struct nvkm_device *device, int index, struct nvkm_fb **pfb)
 {
-	return gf100_ram_new_(&gf108_ram, fb, pram);
+	return gf100_fb_new_(&gf104_fb, device, index, pfb);
 }

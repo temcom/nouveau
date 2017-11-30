@@ -110,7 +110,8 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 	    (ram->from != DIV && ram->mode != DIV))
 		return -ENOSYS;
 
-	ret = nvkm_gddr5_calc(&ram->base, false, ram->mode == DIV);
+	ret = nvkm_gddr5_calc(&ram->base, false, ram->mode == DIV,
+			      ram->M0203.lp3 ? (ram->mode == DIV) ? 2 : 1 : 0);
 	if (ret)
 		return ret;
 
@@ -231,10 +232,16 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	gf100_ram_calc_timing(ram);
 
+	if (memx_mask(memx, 0x10f340, mr[5].mask, mr[5].data & ~0x004, DIFF))
+		memx_nsec(memx, 1000);
+
 	if (ram->mode == DIV) {
 		memx_mask(memx, 0x10f830, 0x00000000, 0x00000000, FORCE);
 		gf100_ram_calc_train(ram, 0xffffffff, 0x80021001);
 		gf100_ram_calc_train(ram, 0xffffffff, 0x80081001);
+
+		if (memx_mask(memx, 0x10f340, mr[5].mask, mr[5].data, DIFF))
+			memx_nsec(memx, 1000);
 		memx_mask(memx, 0x10f830, 0x01000000, 0x01000000);
 		memx_mask(memx, 0x10f830, 0x01000000, 0x00000000);
 	} else {

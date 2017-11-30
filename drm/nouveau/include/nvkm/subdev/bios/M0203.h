@@ -20,6 +20,7 @@ struct nvbios_M0203E {
 	u8 type;
 	u8 strap;
 	u8 group;
+	bool lp3;
 };
 
 u32 nvbios_M0203Ee(struct nvkm_bios *, int idx, u8 *ver, u8 *hdr);

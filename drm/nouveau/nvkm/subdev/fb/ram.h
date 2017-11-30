@@ -100,7 +100,7 @@ struct nvkm_ram_mr_xlat {
 int nvkm_sddr2_calc(struct nvkm_ram *);
 int nvkm_sddr3_calc(struct nvkm_ram *);
 int nvkm_gddr3_calc(struct nvkm_ram *);
-int nvkm_gddr5_calc(struct nvkm_ram *, bool nuts, int rq);
+int nvkm_gddr5_calc(struct nvkm_ram *, bool nuts, int rq, int l3);
 
 int nv04_ram_new(struct nvkm_fb *, struct nvkm_ram **);
 int nv10_ram_new(struct nvkm_fb *, struct nvkm_ram **);

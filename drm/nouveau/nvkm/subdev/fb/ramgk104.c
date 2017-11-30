@@ -1077,7 +1077,7 @@ gk104_ram_calc_xits(struct gk104_ram *ram, struct nvkm_ram_data *next)
 		break;
 	case NVKM_RAM_TYPE_GDDR5:
 		ret = nvkm_gddr5_calc(&ram->base, ram->pnuts != 0,
-				      next->freq < 1000000);
+				      next->freq < 1000000, 0);
 		if (ret == 0)
 			ret = gk104_ram_calc_gddr5(ram, next->freq);
 		break;

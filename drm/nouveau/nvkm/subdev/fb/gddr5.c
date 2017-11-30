@@ -32,7 +32,7 @@
 #define NOTE00(a) 1
 
 int
-nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq)
+nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq, int l3)
 {
 	MR_ARGS(rq, xd, pd, lf, vh, vr, vo, l3, WL, CL, WR, at[2], dt, ds);
 	MR_LOAD(rq, rq);
@@ -40,6 +40,7 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq)
 
 	switch (ram->next->bios.ramcfg_ver) {
 	case 0x10:
+		MR_COND(l3, l3 > 1, l3);
 		break;
 	case 0x11:
 		MR_LOAD(pd, c->ramcfg_11_01_80); /*XXX: RM !1->0 */

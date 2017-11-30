@@ -92,6 +92,7 @@ nvbios_M0203Ep(struct nvkm_bios *bios, int idx, u8 *ver, u8 *hdr,
 		info->type  = (nvbios_rd08(bios, data + 0x00) & 0x0f) >> 0;
 		info->strap = (nvbios_rd08(bios, data + 0x00) & 0xf0) >> 4;
 		info->group = (nvbios_rd08(bios, data + 0x01) & 0x0f) >> 0;
+		info->lp3 = !!(nvbios_rd08(bios, data + 0x03) & 0x10);
 		return data;
 	default:
 		break;

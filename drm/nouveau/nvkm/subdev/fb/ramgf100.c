@@ -417,7 +417,7 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 			memx_wr32(memx, 0x10f630, data);
 			data = 0x11111111 * c->bios.ramcfg_10_06_0f;
 			memx_wr32(memx, 0x10f634, data);
-			data = 0x00000005;
+			data = c->bios.ramcfg_10_0a;
 			for (i = 0; i < 8; i++)
 				memx_wr32(memx, 0x10fc20 + (i * 0x0c), data);
 			memx_nsec(memx, 1000);

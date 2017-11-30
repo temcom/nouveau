@@ -932,6 +932,7 @@ gf100_ram_new_(const struct nvkm_ram_func *func,
 	struct nvkm_subdev *subdev = &fb->subdev;
 	struct nvkm_bios *bios = subdev->device->bios;
 	struct gf100_ram *ram;
+	u8 strap, ver, hdr;
 	int ret, i;
 
 	if (!(ram = kzalloc(sizeof(*ram), GFP_KERNEL)))
@@ -941,6 +942,10 @@ gf100_ram_new_(const struct nvkm_ram_func *func,
 	ret = gf100_ram_ctor(func, fb, &ram->base);
 	if (ret)
 		return ret;
+
+	strap = (nvkm_rd32(subdev->device, 0x101000) & 0x0000003c) >> 2;
+	if (!nvbios_M0203Em(bios, strap, &ver, &hdr, &ram->M0203))
+		return -ENOSYS;
 
 	/* parse bios data for all rammap table entries up-front, and
 	 * build information on whether certain fields differ between

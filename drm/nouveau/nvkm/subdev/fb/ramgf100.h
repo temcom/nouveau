@@ -4,11 +4,14 @@
 #include "ram.h"
 
 #include <subdev/bios.h>
+#include <subdev/bios/M0203.h>
 #include <subdev/bios/pll.h>
 
 struct gf100_ram {
 	struct nvkm_ram base;
 	struct nvkm_memx *memx;
+
+	struct nvbios_M0203E M0203;
 	struct nvbios_pll refpll;
 	struct nvbios_pll mempll;
 

@@ -32,7 +32,7 @@
 #define NOTE00(a) 1
 
 int
-nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq, int l3)
+nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq, int l3, int at)
 {
 	MR_ARGS(rq, xd, pd, lf, vh, vr, vo, l3, WL, CL, WR, at[2], dt, ds);
 	MR_LOAD(rq, rq);
@@ -66,6 +66,8 @@ nvkm_gddr5_calc(struct nvkm_ram *ram, bool nuts, int rq, int l3)
 		MR_COND(ds, c->timing_10_0e_30, v->timing_10_0e_30);
 		MR_COND(dt, c->timing_10_ODT, v->timing_10_ODT);
 		MR_COND(WL, c->timing_10_CWL, v->timing_10_CWL);
+		if (at)
+			MR_COND(at[0], c->timing_10_16_0c, v->timing_10_16_0c);
 		break;
 	case 0x20:
 		MR_LOAD(WL, (c->timing[1] & 0x00000f80) >> 7);

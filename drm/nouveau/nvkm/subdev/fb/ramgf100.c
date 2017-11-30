@@ -208,7 +208,8 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 		return -ENOSYS;
 
 	ret = nvkm_gddr5_calc(&ram->base, false, ram->mode == DIV,
-			      ram->M0203.lp3 ? (ram->mode == DIV) ? 2 : 1 : 0);
+			      ram->M0203.lp3 ? (ram->mode == DIV) ? 2 : 1 : 0,
+			      ram->M0203.u03_07 == 2);
 	if (ret)
 		return ret;
 
@@ -256,6 +257,9 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	/* Wait for a vblank window, and disable FB access. */
 	r100b0c = gf100_ram_calc_fb_access(ram, false, 0x12);
+
+	if ((mr[1].data & 0x03c) != 0x030)
+		memx_mask(memx, 0x10f330, 0x03c, mr[1].data & 0x03c);
 
 	if (v->ramcfg_10_04_10 && !c->bios.ramcfg_10_04_10 &&
 	    nvkm_gpio_get(gpio, 0, 0x2e, DCB_GPIO_UNUSED) == 0) {
@@ -1448,6 +1452,7 @@ gf100_ram_new_data(struct gf100_ram *ram, u8 ramcfg, int i)
 	v->timing_10_0e_30 |= c->timing_10_0e_30 != 0;
 	v->timing_10_ODT |= c->timing_10_ODT != 0;
 	v->timing_10_CWL |= c->timing_10_CWL != 0;
+	v->timing_10_16_0c |= c->timing_10_16_0c != 0;
 done:
 	if (ret)
 		kfree(cfg);

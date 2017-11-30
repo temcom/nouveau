@@ -415,7 +415,7 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 			memx_nsec(memx, 1000);
 			data = 0x11111111 * c->bios.ramcfg_10_06_f0;
 			memx_wr32(memx, 0x10f630, data);
-			data = 0xffffffff;
+			data = 0x11111111 * c->bios.ramcfg_10_06_0f;
 			memx_wr32(memx, 0x10f634, data);
 			data = 0x00000005;
 			for (i = 0; i < 8; i++)
@@ -456,8 +456,9 @@ gf100_ram_calc_sddr3_r10f658(struct gf100_ram *ram)
 {
 	struct nvkm_ram_data *c = ram->base.next;
 	struct nvkm_memx *memx = ram->memx;
-	memx_mask(memx, 0x10f658, 0x00f0ffff,
+	memx_mask(memx, 0x10f658, 0x00ffffff,
 			(c->bios.ramcfg_10_06_f0 << 20) |
+			(c->bios.ramcfg_10_06_0f << 16) |
 			(c->bios.ramcfg_10_05_f0 << 12) |
 			(c->bios.ramcfg_10_05_0f << 8) |
 			(c->bios.ramcfg_10_05_f0 << 4) |

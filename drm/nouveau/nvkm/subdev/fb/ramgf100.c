@@ -296,7 +296,12 @@ gf100_ram_calc_gddr5(struct gf100_ram *ram)
 
 	if (ram->mode != DIV) {
 		memx_mask(memx, 0x10f800, 0x000000ff, 0x00000000, FORCE);
-		memx_mask(memx, 0x1373ec, 0x00003f3f, 0x00000000, FORCE);
+
+		if (data = 0, c->bios.ramcfg_10_0b_3f != 0x3f)
+			data = 0x00000101 * c->bios.ramcfg_10_0b_3f;
+		mask = 0x00003f3f;
+		memx_mask(memx, 0x1373ec, mask, data, FORCE);
+
 		memx_mask(memx, 0x1373f0, 0x00000002, 0x00000002, FORCE);
 		memx_wr32(memx, 0x10f830, 0x40700010);
 		memx_mask(memx, 0x10f830, 0x00200000, 0x00000000);

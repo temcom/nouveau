@@ -96,6 +96,7 @@ struct nvbios_ramcfg {
 			unsigned ramcfg_10_09_0f:4;
 			unsigned ramcfg_10_09_f0:4;
 			unsigned ramcfg_10_0a:8;
+			unsigned ramcfg_10_0b_3f:6;
 		};
 		struct {
 			unsigned ramcfg_11_01_01:1;

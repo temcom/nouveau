@@ -25,6 +25,8 @@
 #include <subdev/mmu.h>
 #include <engine/fifo.h>
 
+#include <nvif/class.h>
+
 static void
 gv100_fault_buffer_process(struct nvkm_fault_buffer *buffer)
 {
@@ -166,6 +168,13 @@ gv100_fault_intr(struct nvkm_fault *fault)
 		}
 	}
 
+	if (stat & 0x08000000) {
+		if (fault->buffer[1]) {
+			nvkm_event_send(&fault->event, 1, 1, NULL, 0);
+			stat &= ~0x08000000;
+		}
+	}
+
 	if (stat) {
 		nvkm_debug(subdev, "intr %08x\n", stat);
 	}
@@ -206,6 +215,7 @@ gv100_fault = {
 	.buffer.init = gv100_fault_buffer_init,
 	.buffer.fini = gv100_fault_buffer_fini,
 	.buffer.intr = gv100_fault_buffer_intr,
+	.user = { { 0, 0, VOLTA_FAULT_BUFFER_A }, 1 },
 };
 
 int

@@ -1,5 +1,5 @@
-BINNVIF_CC = $(CFLAGS)
-BINNVIF_LD = $(LDFLAGS) -lnvif -lncurses -lmenu -lform -L$(lib)
+BINNVIF_CC = $(CFLAGS) -I$(drm)
+BINNVIF_LD = $(LDFLAGS) -lnvif -lncurses -lmenu -lform -ldrm -ldrm_nouveau -L$(lib)
 
 srcs = $(wildcard $(bin)/*.c)
 outp = $(srcs:.c=)

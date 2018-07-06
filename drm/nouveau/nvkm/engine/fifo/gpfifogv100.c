@@ -122,7 +122,7 @@ gv100_fifo_gpfifo_new_(struct gk104_fifo *fifo, u64 *runlists, u16 *chid,
 	int runlist = ffs(*runlists) -1, ret, i;
 	unsigned long engm;
 	u64 subdevs = 0;
-	u64 usermem;
+	u64 usermem, mthd;
 
 	if (!vmm || runlist < 0 || runlist >= fifo->runlist_nr)
 		return -EINVAL;
@@ -174,6 +174,17 @@ gv100_fifo_gpfifo_new_(struct gk104_fifo *fifo, u64 *runlists, u16 *chid,
 	nvkm_done(fifo->user.mem);
 	usermem = nvkm_memory_addr(fifo->user.mem) + usermem;
 
+	/* Allocate fault method buffer. */
+	ret = nvkm_memory_new(fifo->base.engine.subdev.device,
+			      NVKM_MEM_TARGET_INST, 16 * 1024, 0x1000,
+			      true, &chan->mthd);
+	if (ret)
+		return ret;
+
+	mthd = nvkm_memory_bar2(chan->mthd);
+	if (mthd == ~0ULL)
+		return -EFAULT;
+
 	/* RAMFC */
 	nvkm_kmap(chan->base.inst);
 	nvkm_wo32(chan->base.inst, 0x008, lower_32_bits(usermem));
@@ -190,8 +201,8 @@ gv100_fifo_gpfifo_new_(struct gk104_fifo *fifo, u64 *runlists, u16 *chid,
 	nvkm_wo32(chan->base.inst, 0x0f4, 0x00001100);
 	nvkm_wo32(chan->base.inst, 0x0f8, 0x10003080);
 	nvkm_mo32(chan->base.inst, 0x218, 0x00000000, 0x00000000);
-	nvkm_wo32(chan->base.inst, 0x220, 0x020a1000);
-	nvkm_wo32(chan->base.inst, 0x224, 0x00000000);
+	nvkm_wo32(chan->base.inst, 0x220, lower_32_bits(mthd));
+	nvkm_wo32(chan->base.inst, 0x224, upper_32_bits(mthd));
 	nvkm_done(chan->base.inst);
 	return gv100_fifo_gpfifo_engine_valid(chan, true, true);
 }

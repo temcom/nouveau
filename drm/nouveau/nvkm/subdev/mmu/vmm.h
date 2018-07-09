@@ -145,6 +145,9 @@ struct nvkm_vmm_func {
 		     struct nvkm_vmm_map *);
 	void (*flush)(struct nvkm_vmm *, int depth);
 
+	int (*mthd)(struct nvkm_vmm *, struct nvkm_client *,
+		    u32 mthd, void *argv, u32 argc);
+
 	u64 page_block;
 	const struct nvkm_vmm_page page[];
 };
@@ -217,6 +220,7 @@ int gm200_vmm_join(struct nvkm_vmm *, struct nvkm_memory *);
 int gp100_vmm_join(struct nvkm_vmm *, struct nvkm_memory *);
 int gp100_vmm_valid(struct nvkm_vmm *, void *, u32, struct nvkm_vmm_map *);
 void gp100_vmm_flush(struct nvkm_vmm *, int);
+int gp100_vmm_mthd(struct nvkm_vmm *, struct nvkm_client *, u32, void *, u32);
 
 int nv04_vmm_new(struct nvkm_mmu *, bool, u64, u64, void *, u32,
 		 struct lock_class_key *, const char *, struct nvkm_vmm **);

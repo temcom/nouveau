@@ -21,8 +21,10 @@
  */
 #include "vmm.h"
 
+#include <core/client.h>
 #include <subdev/fb.h>
 #include <subdev/ltc.h>
+#include <subdev/timer.h>
 
 #include <nvif/ifc00d.h>
 #include <nvif/unpack.h>
@@ -384,6 +386,81 @@ gp100_vmm_valid(struct nvkm_vmm *vmm, void *argv, u32 argc,
 	return 0;
 }
 
+static int
+gp100_vmm_fault_cancel(struct nvkm_vmm *vmm, void *argv, u32 argc)
+{
+	struct nvkm_device *device = vmm->mmu->subdev.device;
+	union {
+		struct gp100_vmm_fault_cancel_v0 v0;
+	} *args = argv;
+	int ret = -ENOSYS;
+
+	/*XXX: I think this could go horribly wrong and kill the wrong
+	 *     channel if a faulted unit can still ctxsw?
+	 */
+	if (!(ret = nvif_unpack(ret, &argv, &argc, args->v0, 0, 0, false))) {
+		mutex_lock(&vmm->mmu->subdev.mutex);
+		nvkm_msec(device, 2000,
+			if (nvkm_rd32(device, 0x100c80) & 0x00ff0000)
+				break;
+		);
+		nvkm_wr32(device, 0x100cbc, 0x8000001b /* CANCEL_TARGETED. */ |
+					    (args->v0.hub    << 20) |
+					    (args->v0.gpc    << 15) |
+					    (args->v0.client << 9));
+		nvkm_msec(device, 2000,
+			if (nvkm_rd32(device, 0x100c80) & 0x00008000)
+				break;
+		);
+		mutex_unlock(&vmm->mmu->subdev.mutex);
+	}
+
+	return ret;
+}
+
+static int
+gp100_vmm_fault_replay(struct nvkm_vmm *vmm, void *argv, u32 argc)
+{
+	struct nvkm_device *device = vmm->mmu->subdev.device;
+	union {
+		struct gp100_vmm_fault_replay_vn vn;
+	} *args = argv;
+	int ret = -ENOSYS;
+
+	if (!(ret = nvif_unvers(ret, &argv, &argc, args->vn))) {
+		mutex_lock(&vmm->mmu->subdev.mutex);
+		nvkm_msec(device, 2000,
+			if (nvkm_rd32(device, 0x100c80) & 0x00ff0000)
+				break;
+		);
+		nvkm_wr32(device, 0x100cbc, 0x8000000b); /* REPLAY_GLOBAL. */
+		nvkm_msec(device, 2000,
+			if (nvkm_rd32(device, 0x100c80) & 0x00008000)
+				break;
+		);
+		mutex_unlock(&vmm->mmu->subdev.mutex);
+	}
+
+	return ret;
+}
+
+int
+gp100_vmm_mthd(struct nvkm_vmm *vmm,
+	       struct nvkm_client *client, u32 mthd, void *argv, u32 argc)
+{
+	if (client->super) {
+		switch (mthd) {
+		case GP100_VMM_VN_FAULT_REPLAY:
+			return gp100_vmm_fault_replay(vmm, argv, argc);
+		case GP100_VMM_VN_FAULT_CANCEL:
+			return gp100_vmm_fault_cancel(vmm, argv, argc);
+		default:
+			break;
+		}
+	}
+	return -EINVAL;
+}
+
 void
 gp100_vmm_flush(struct nvkm_vmm *vmm, int depth)
 {
@@ -404,6 +481,7 @@ gp100_vmm = {
 	.aper = gf100_vmm_aper,
 	.valid = gp100_vmm_valid,
 	.flush = gp100_vmm_flush,
+	.mthd = gp100_vmm_mthd,
 	.page = {
 		{ 47, &gp100_vmm_desc_16[4], NVKM_VMM_PAGE_Sxxx },
 		{ 38, &gp100_vmm_desc_16[3], NVKM_VMM_PAGE_Sxxx },

@@ -375,7 +375,7 @@ gk104_fifo_recover_engn(struct gk104_fifo *fifo, int engn)
 	assert_spin_locked(&fifo->base.lock);
 	if (fifo->recover.engm & engm)
 		return;
-	fifo->recover.engm |= engm;
+//	fifo->recover.engm |= engm;
 
 	/* Block channel assignments from changing during recovery. */
 	gk104_fifo_recover_runl(fifo, runl);
@@ -390,7 +390,7 @@ gk104_fifo_recover_engn(struct gk104_fifo *fifo, int engn)
 	/* Determine MMU fault ID for the engine, if we're not being
 	 * called from the fault handler already.
 	 */
-	if (!status.faulted && engine) {
+	if (0 && !status.faulted && engine) {
 		mmui = nvkm_top_fault_id(device, engine->subdev.index);
 		if (mmui < 0) {
 			const struct nvkm_enum *en = fifo->func->fault.engine;
@@ -1000,6 +1000,7 @@ gk104_fifo_init(struct nvkm_fifo *base)
 
 	nvkm_wr32(device, 0x002100, 0xffffffff);
 	nvkm_wr32(device, 0x002140, 0x7fffffff);
+	nvkm_wr32(device, 0x002a0c, 0x00000000);
 }
 
 static void *

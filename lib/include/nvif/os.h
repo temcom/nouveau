@@ -146,6 +146,18 @@ typedef dma_addr_t resource_size_t;
 #define IS_ENABLED_CONFIG_ARCH_TEGRA 0
 #endif
 
+#if defined(CONFIG_ARCH_TEGRA_186_SOC)
+#define IS_ENABLED_CONFIG_ARCH_TEGRA_186_SOC 1
+#else
+#define IS_ENABLED_CONFIG_ARCH_TEGRA_186_SOC 0
+#endif
+
+#if defined(CONFIG_ARCH_TEGRA_210_SOC)
+#define IS_ENABLED_CONFIG_ARCH_TEGRA_210_SOC 1
+#else
+#define IS_ENABLED_CONFIG_ARCH_TEGRA_210_SOC 0
+#endif
+
 #define IS_ENABLED(x) IS_ENABLED_##x
 
 static inline bool
@@ -735,6 +747,8 @@ struct lock_class_key {
 
 #define list_first_entry_or_null(a,b,c) \
 	(list_empty(a) ? NULL : list_first_entry((a),b,c))
+#define list_for_each_entry_from_reverse(a,b,c) \
+	for (; &(a)->c != (b); a = list_entry((a)->c.prev, typeof(*(a)), c))
 
 /******************************************************************************
  * rbtree

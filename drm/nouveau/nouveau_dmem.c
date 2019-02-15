@@ -523,6 +523,9 @@ nvc0b5_migrate_copy(struct nouveau_drm *drm, u64 npages,
 			 (2 << 0) /* DATA_TRANSFER_TYPE_NON_PIPELINED. */;
 	int ret;
 
+	printk(KERN_ERR "%d/%016llx -> %d/%016llx\n",
+	       src_aper, src_addr, dst_aper, dst_addr);
+
 	ret = RING_SPACE(chan, 13);
 	if (ret)
 		return ret;
